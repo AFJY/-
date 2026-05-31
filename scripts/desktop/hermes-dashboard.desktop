@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Hermes 控制台
+Comment=Web 管理面板（配置、会话、模型）
+Exec=/home/ubuntu/.local/bin/hermes-desktop-dashboard.sh
+Icon=/home/ubuntu/.local/share/icons/hermes-agent.png
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true
