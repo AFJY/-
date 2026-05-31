@@ -2,6 +2,43 @@
 
 本仓库提供在 Linux 上安装 **最新版 [Hermes Agent](https://github.com/NousResearch/hermes-agent)**，并将 **DeepSeek** 配置为推理后端的脚本与说明。
 
+## 本机一键部署（在你自己的电脑上）
+
+> **说明：** Cursor Cloud 远程环境里的桌面图标不会出现在你家电脑桌面上，必须在本机/WSL 执行下列命令。
+
+### Linux 或 WSL2（Ubuntu）
+
+```bash
+git clone https://github.com/AFJY/-.git hermes-deploy
+cd hermes-deploy
+git checkout cursor/hermes-desktop-deploy-a460   # 或 cursor/hermes-desktop-ebbd
+export DEEPSEEK_API_KEY='sk-你的密钥'
+bash scripts/install-local.sh
+source ~/.bashrc
+```
+
+完成后在 **`~/Desktop`** 或 **`~/桌面`** 双击 **Hermes Agent** / **Hermes 控制台**。
+
+### Windows（PowerShell，通过 WSL 安装）
+
+```powershell
+git clone https://github.com/AFJY/-.git hermes-deploy
+cd hermes-deploy
+git checkout cursor/hermes-desktop-deploy-a460
+$env:DEEPSEEK_API_KEY = "sk-你的密钥"
+.\scripts\install-local.ps1
+```
+
+### macOS
+
+```bash
+git clone https://github.com/AFJY/-.git hermes-deploy && cd hermes-deploy
+git checkout cursor/hermes-desktop-deploy-a460
+export DEEPSEEK_API_KEY='sk-你的密钥'
+bash scripts/install-local.sh
+source ~/.bashrc && hermes
+```
+
 ## 环境要求
 
 - Linux（Ubuntu/Debian 等）或 WSL2

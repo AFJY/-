@@ -4,8 +4,29 @@ set -euo pipefail
 HOME_DIR="${HOME}"
 BIN="${HOME_DIR}/.local/bin"
 APPS="${HOME_DIR}/.local/share/applications"
-DESKTOP="${HOME_DIR}/Desktop"
 ICONS="${HOME_DIR}/.local/share/icons"
+
+# Resolve real desktop folder(s): Desktop, 桌面, XDG user-dirs
+DESKTOP_DIRS=()
+if [ -f "${HOME_DIR}/.config/user-dirs.dirs" ]; then
+  # shellcheck disable=SC1091
+  . "${HOME_DIR}/.config/user-dirs.dirs"
+  _xdg="${XDG_DESKTOP_DIR:-\$HOME/Desktop}"
+  _xdg="${_xdg//\$HOME/${HOME_DIR}}"
+  DESKTOP_DIRS+=("$_xdg")
+fi
+DESKTOP_DIRS+=("${HOME_DIR}/Desktop" "${HOME_DIR}/桌面")
+# Deduplicate existing dirs
+DESKTOP_UNIQUE=()
+for d in "${DESKTOP_DIRS[@]}"; do
+  [ -d "$d" ] || mkdir -p "$d" 2>/dev/null || continue
+  seen=0
+  for u in "${DESKTOP_UNIQUE[@]:-}"; do
+    [ "$u" = "$d" ] && seen=1 && break
+  done
+  [ "$seen" -eq 0 ] && DESKTOP_UNIQUE+=("$d")
+done
+DESKTOP="${DESKTOP_UNIQUE[0]:-${HOME_DIR}/Desktop}"
 
 mkdir -p "$BIN" "$APPS" "$DESKTOP" "$ICONS"
 
@@ -36,8 +57,15 @@ chmod +x "${BIN}/hermes-desktop-chat.sh" "${BIN}/hermes-desktop-dashboard.sh"
 
 ICON="${ICONS}/hermes-agent.png"
 [ -f "$ICON" ] || ICON="utilities-terminal"
-TERM_CMD="xfce4-terminal"
-command -v xfce4-terminal >/dev/null || TERM_CMD="xterm"
+if command -v xfce4-terminal >/dev/null 2>&1; then
+  TERM_CMD="xfce4-terminal"
+elif command -v gnome-terminal >/dev/null 2>&1; then
+  TERM_CMD="gnome-terminal"
+elif command -v konsole >/dev/null 2>&1; then
+  TERM_CMD="konsole"
+else
+  TERM_CMD="xterm"
+fi
 
 write_desktop() {
   local dest="$1" name="$2" comment="$3" exec_line="$4"
@@ -57,17 +85,36 @@ DESK
   gio set "$dest" metadata::trusted true 2>/dev/null || true
 }
 
+case "${TERM_CMD}" in
+  xfce4-terminal)
+    CHAT_EXEC="${TERM_CMD} --hold -T Hermes Agent -e ${BIN}/hermes-desktop-chat.sh"
+    ;;
+  gnome-terminal)
+    CHAT_EXEC="${TERM_CMD} --title=\"Hermes Agent\" -- ${BIN}/hermes-desktop-chat.sh"
+    ;;
+  konsole)
+    CHAT_EXEC="${TERM_CMD} --hold -p tab -e ${BIN}/hermes-desktop-chat.sh"
+    ;;
+  *)
+    CHAT_EXEC="${TERM_CMD} -hold -e ${BIN}/hermes-desktop-chat.sh"
+    ;;
+esac
+
 write_desktop "${APPS}/hermes-agent.desktop" "Hermes Agent" \
   "DeepSeek AI 助手" \
-  "${TERM_CMD} --hold -T Hermes Agent -e ${BIN}/hermes-desktop-chat.sh"
+  "${CHAT_EXEC}"
 
 write_desktop "${APPS}/hermes-dashboard.desktop" "Hermes 控制台" \
   "Web 管理面板" \
   "${BIN}/hermes-desktop-dashboard.sh"
 
-cp "${APPS}/hermes-agent.desktop" "${DESKTOP}/Hermes Agent.desktop"
-cp "${APPS}/hermes-dashboard.desktop" "${DESKTOP}/Hermes 控制台.desktop"
-ln -sf "${DESKTOP}/Hermes Agent.desktop" "${DESKTOP}/Hermes智能助手.desktop" 2>/dev/null || true
+for DESKTOP in "${DESKTOP_UNIQUE[@]}"; do
+  cp "${APPS}/hermes-agent.desktop" "${DESKTOP}/Hermes Agent.desktop"
+  cp "${APPS}/hermes-dashboard.desktop" "${DESKTOP}/Hermes 控制台.desktop"
+  ln -sf "${DESKTOP}/Hermes Agent.desktop" "${DESKTOP}/Hermes智能助手.desktop" 2>/dev/null || true
+  chmod +x "${DESKTOP}/Hermes Agent.desktop" "${DESKTOP}/Hermes 控制台.desktop" 2>/dev/null || true
+done
 
 update-desktop-database "${APPS}" 2>/dev/null || true
-echo "桌面快捷方式已安装到 ${DESKTOP}"
+echo "桌面快捷方式已安装到:"
+printf '  - %s\n' "${DESKTOP_UNIQUE[@]}"
