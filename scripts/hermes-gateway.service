@@ -1,0 +1,16 @@
+[Unit]
+Description=Hermes Agent messaging gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+Environment=HOME=/home/%i
+EnvironmentFile=-/home/%i/.hermes/.env
+ExecStart=/home/%i/.local/bin/hermes gateway start
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
