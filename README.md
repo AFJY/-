@@ -21,12 +21,24 @@ source ~/.bashrc
 
 ### Windows（PowerShell，通过 WSL 安装）
 
+**前置：** 已安装 [WSL2](https://learn.microsoft.com/zh-cn/windows/wsl/install)（`wsl --install` 后重启）。
+
 ```powershell
 git clone https://github.com/AFJY/-.git hermes-deploy
 cd hermes-deploy
 git checkout cursor/hermes-desktop-deploy-a460
 $env:DEEPSEEK_API_KEY = "sk-你的密钥"
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\scripts\install-local.ps1
+```
+
+安装结束后，**Windows 桌面**会出现 **Hermes Agent (DeepSeek)** 和 **Hermes 控制台** 快捷方式（通过 WSL 启动）。
+
+仅补建桌面图标（已装好 Hermes 时）：
+
+```powershell
+cd hermes-deploy
+.\scripts\windows\Create-HermesShortcuts.ps1
 ```
 
 ### macOS

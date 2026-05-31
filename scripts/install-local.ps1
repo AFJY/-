@@ -41,7 +41,14 @@ Write-Host ""
 Write-Host "正在 WSL 内安装（首次可能需几分钟）..."
 wsl -e bash -lc $installCmd
 
+$shortcutScript = Join-Path $PSScriptRoot "windows\Create-HermesShortcuts.ps1"
+if (Test-Path $shortcutScript) {
+    Write-Host ""
+    Write-Host "==> 创建 Windows 桌面快捷方式 ..."
+    & $shortcutScript
+}
+
 Write-Host ""
-Write-Host "完成。在 WSL/Ubuntu 终端运行: hermes"
-Write-Host "Windows 桌面快捷方式: 在 WSL 的 ~/Desktop 或运行 install-desktop-shortcuts.sh"
-Write-Host "也可在资源管理器打开: \\wsl$\Ubuntu\home\你的用户名\Desktop"
+Write-Host "完成。"
+Write-Host "  WSL 终端: wsl  然后运行  hermes"
+Write-Host "  Windows 桌面: Hermes Agent (DeepSeek) / Hermes 控制台"
