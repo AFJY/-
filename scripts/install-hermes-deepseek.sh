@@ -17,10 +17,10 @@ if [ -d "${HERMES_HOME}/hermes-agent/.git" ]; then
   git -C "${HERMES_HOME}/hermes-agent" fetch origin main
   git -C "${HERMES_HOME}/hermes-agent" pull --ff-only origin main || true
   if command -v uv >/dev/null 2>&1; then
-  (
-    cd "${HERMES_HOME}/hermes-agent"
-    uv pip install -e ".[all]"
-  )
+    VENV_PY="${HERMES_HOME}/hermes-agent/venv/bin/python"
+    if [ -x "${VENV_PY}" ]; then
+      uv pip install --python "${VENV_PY}" -e "${HERMES_HOME}/hermes-agent[all]"
+    fi
   fi
 fi
 
