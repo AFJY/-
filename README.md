@@ -9,7 +9,7 @@
 - 约 2GB 磁盘（不含本地大模型）
 - [DeepSeek API Key](https://platform.deepseek.com/)
 
-## 一键安装
+## 一键安装（DeepSeek）
 
 ```bash
 export DEEPSEEK_API_KEY='sk-你的密钥'
@@ -18,56 +18,36 @@ source ~/.bashrc
 hermes
 ```
 
-安装脚本会：
+## 完整安装（所有可自动安装的依赖）
 
-1. 通过官方 `install.sh` 安装 Hermes（当前主线约 v0.15.x）
-2. `git pull` 同步 `~/.hermes/hermes-agent` 到最新 `main`
-3. 将 `model.provider` 设为 `deepseek`，默认模型 `deepseek-v4-pro`，API 地址 `https://api.deepseek.com/v1`
+```bash
+bash scripts/install-hermes-full.sh
+source ~/.bashrc
+hermes doctor
+```
+
+会额外安装：全部 lazy Python 包（Telegram、Discord、Slack、Matrix、FAL、Exa 等）、Playwright Chromium、Docker、`ddgs` 免费网页搜索、Codex CLI、Skills Hub 初始化。
+
+以下仍需你自行配置密钥（见 `.env.example`）：`DEEPSEEK_API_KEY`、`FAL_KEY`、各消息平台 Bot Token、`OPENROUTER_API_KEY`、`XAI_API_KEY` 等。`computer_use` 仅支持 macOS。
 
 ## 手动配置 API Key
 
-若未在安装时提供密钥：
-
 ```bash
 hermes config set DEEPSEEK_API_KEY 'sk-你的密钥'
-# 或编辑
-hermes config edit   # 修改 ~/.hermes/.env
+hermes config edit
 ```
 
-> 内置 `deepseek` 提供商只读取环境变量 `DEEPSEEK_API_KEY`（写入 `~/.hermes/.env`），不会使用 `config.yaml` 里的 `api_key` 字段。
+> 内置 `deepseek` 提供商只读取 `DEEPSEEK_API_KEY`（`~/.hermes/.env`），不使用 `config.yaml` 里的 `api_key` 字段。
 
 ## 常用命令
 
 | 命令 | 说明 |
 |------|------|
 | `hermes` | 交互式对话 |
-| `hermes update` | 更新到最新版（需可交互确认 upstream） |
 | `hermes doctor` | 诊断环境与密钥 |
-| `hermes model` | 切换模型 |
-| `hermes gateway start` | 启动 Telegram/Discord 等网关 |
-
-## 可选：systemd 网关服务
-
-将 `scripts/hermes-gateway.service` 复制到系统目录并启用（将 `ubuntu` 换成你的用户名）：
-
-```bash
-sudo cp scripts/hermes-gateway.service /etc/systemd/system/hermes-gateway@.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now hermes-gateway@ubuntu
-```
-
-需先在 `~/.hermes/.env` 中配置 `DEEPSEEK_API_KEY`，并完成 `hermes gateway setup`。
-
-## 当前实例状态（Cloud Agent）
-
-本环境已完成：
-
-- Hermes Agent **v0.15.1** 安装于 `~/.hermes/hermes-agent`
-- `~/.hermes/config.yaml` 已设置：`provider: deepseek`，`default: deepseek-v4-pro`
-
-待你提供 `DEEPSEEK_API_KEY` 后即可直接运行 `hermes`。
+| `hermes gateway start` | 消息网关（需先 `gateway setup`） |
 
 ## 参考
 
 - [Hermes 文档](https://hermes-agent.nousresearch.com/docs/)
-- [DeepSeek × Hermes 集成说明](https://api-docs.deepseek.com/quick_start/agent_integrations/hermes)
+- [DeepSeek × Hermes](https://api-docs.deepseek.com/quick_start/agent_integrations/hermes)
