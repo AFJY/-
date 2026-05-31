@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Hermes Agent
+Comment=DeepSeek 驱动的 AI 助手（终端界面）
+Exec=xfce4-terminal --hold -T Hermes Agent -e /home/ubuntu/.local/bin/hermes-desktop-chat.sh
+Icon=/home/ubuntu/.local/share/icons/hermes-agent.png
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true
