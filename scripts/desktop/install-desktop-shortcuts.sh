@@ -143,5 +143,18 @@ for DESKTOP in "${DESKTOP_UNIQUE[@]}"; do
 done
 
 update-desktop-database "${APPS}" 2>/dev/null || true
+
+# XFCE: 默认常关闭桌面图标，需显式开启才会显示 ~/Desktop 里的 .desktop
+if command -v xfconf-query >/dev/null 2>&1; then
+  _style="$(xfconf-query -c xfce4-desktop -p /desktop-icons/style 2>/dev/null || echo 0)"
+  if [ "${_style}" = "0" ]; then
+    xfconf-query -c xfce4-desktop -p /desktop-icons/style -n -t int -s 2 2>/dev/null \
+      || xfconf-query -c xfce4-desktop -p /desktop-icons/style -t int -s 2 2>/dev/null || true
+    echo "已开启 XFCE 桌面图标显示"
+  fi
+  export DISPLAY="${DISPLAY:-:0}"
+  xfdesktop --reload 2>/dev/null || true
+fi
+
 echo "桌面快捷方式已安装到:"
 printf '  - %s\n' "${DESKTOP_UNIQUE[@]}"
