@@ -2,6 +2,16 @@
 
 本仓库提供在 Linux 上安装 **最新版 [Hermes Agent](https://github.com/NousResearch/hermes-agent)**，并将 **DeepSeek** 配置为推理后端的脚本与说明。
 
+## 一键安装包（桌面）
+
+| 平台 | 文件 / 命令 |
+|------|-------------|
+| **Windows** | 双击 [`scripts/oneclick/Install-HermesDesktop.bat`](scripts/oneclick/Install-HermesDesktop.bat) |
+| **Windows 一行** | `irm .../Install-HermesDesktop.ps1 \| iex`（见 [oneclick/README.md](scripts/oneclick/README.md)） |
+| **Linux** | `curl -fsSL .../install-hermes-desktop.sh \| bash` |
+
+详细说明：[scripts/oneclick/README.md](scripts/oneclick/README.md)
+
 ## 本机一键部署（在你自己的电脑上）
 
 > **说明：** Cursor Cloud 远程环境里的桌面图标不会出现在你家电脑桌面上，必须在本机/WSL 执行下列命令。
