@@ -6,8 +6,8 @@
 
 | 平台 | 文件 / 命令 |
 |------|-------------|
-| **Windows** | 双击 [`scripts/oneclick/Install-HermesDesktop.bat`](scripts/oneclick/Install-HermesDesktop.bat) |
-| **Windows 一行** | `irm .../Install-HermesDesktop.ps1 \| iex`（见 [oneclick/README.md](scripts/oneclick/README.md)） |
+| **Windows 本机（推荐）** | `irm .../Install-HermesWindowsNative.ps1 \| iex` 或双击 [`Install-HermesWindowsNative.bat`](scripts/oneclick/Install-HermesWindowsNative.bat) |
+| **Windows + WSL2** | 双击 [`Install-HermesDesktop.bat`](scripts/oneclick/Install-HermesDesktop.bat) |
 | **Linux** | `curl -fsSL .../install-hermes-desktop.sh \| bash` |
 
 详细说明：[scripts/oneclick/README.md](scripts/oneclick/README.md)
@@ -31,26 +31,30 @@ source ~/.bashrc
 
 也可在终端运行：`hermes desktop`（构建并启动原生桌面应用）。
 
-### Windows（PowerShell，通过 WSL 安装）
-
-**前置：** 已安装 [WSL2](https://learn.microsoft.com/zh-cn/windows/wsl/install)（`wsl --install` 后重启）。
+### Windows 本机（PowerShell，无需 WSL）
 
 ```powershell
-git clone https://github.com/AFJY/-.git hermes-deploy
-cd hermes-deploy
-git checkout cursor/hermes-desktop-deploy-a460
 $env:DEEPSEEK_API_KEY = "sk-你的密钥"
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\scripts\install-local.ps1
+Set-ExecutionPolicy -Scope Process Bypass
+irm "https://raw.githubusercontent.com/AFJY/-/cursor/hermes-desktop-deploy-a460/scripts/windows/Install-HermesWindowsNative.ps1" | iex
 ```
 
-安装结束后，**Windows 桌面**会出现 **Hermes Agent (DeepSeek)** 和 **Hermes 控制台** 快捷方式（通过 WSL 启动）。
+安装结束后，在 **Windows 桌面** 找 **Hermes Agent (DeepSeek)** 和 **Hermes 控制台**。  
+程序在 `%LOCALAPPDATA%\hermes\`，配置在 `%USERPROFILE%\.hermes\`。
 
-仅补建桌面图标（已装好 Hermes 时）：
+### Windows + WSL2（备选）
+
+**前置：** 已安装 [WSL2](https://learn.microsoft.com/zh-cn/windows/wsl/install)。
 
 ```powershell
-cd hermes-deploy
-.\scripts\windows\Create-HermesShortcuts.ps1
+$env:DEEPSEEK_API_KEY = "sk-你的密钥"
+irm "https://raw.githubusercontent.com/AFJY/-/cursor/hermes-desktop-deploy-a460/scripts/oneclick/Install-HermesDesktop.ps1" | iex
+```
+
+仅补建 Windows 桌面图标（已装好 Hermes 时）：
+
+```powershell
+irm "https://raw.githubusercontent.com/AFJY/-/cursor/hermes-desktop-deploy-a460/scripts/windows/Create-HermesShortcuts-Native.ps1" | iex
 ```
 
 ### macOS

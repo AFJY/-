@@ -51,6 +51,21 @@ function Escape-BashSingleQuoted([string]$s) {
 }
 
 Write-Banner
+
+# 本机已装原生 Hermes 时，只补桌面图标即可
+$nativeHermes = "$env:LOCALAPPDATA\hermes\bin\hermes.cmd"
+if ((Test-Path $nativeHermes) -or (Get-Command hermes -ErrorAction SilentlyContinue)) {
+    Write-Host "检测到 Windows 原生 Hermes，跳过 WSL 安装，仅创建桌面快捷方式。" -ForegroundColor Green
+    $nativeScript = Join-Path $PSScriptRoot "..\windows\Create-HermesShortcuts-Native.ps1"
+    if (Test-Path $nativeScript) {
+        & $nativeScript
+    } else {
+        irm "https://raw.githubusercontent.com/AFJY/-/$RepoBranch/scripts/windows/Create-HermesShortcuts-Native.ps1" | iex
+    }
+    Read-Host "按 Enter 关闭"
+    exit 0
+}
+
 Ensure-Wsl
 
 $key = Get-DeepSeekKey
