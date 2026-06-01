@@ -27,7 +27,9 @@ bash scripts/install-local.sh
 source ~/.bashrc
 ```
 
-完成后在 **`~/Desktop`** 或 **`~/桌面`** 双击 **Hermes Agent** / **Hermes 控制台**。
+完成后在 **`~/Desktop`** 或 **`~/桌面`** 双击 **Hermes Agent**（官方 Electron 原生 GUI，DeepSeek 后端）或 **Hermes 控制台**（Web 管理面板）。
+
+也可在终端运行：`hermes desktop`（构建并启动原生桌面应用）。
 
 ### Windows（PowerShell，通过 WSL 安装）
 
@@ -102,7 +104,9 @@ hermes config edit
 
 | 命令 | 说明 |
 |------|------|
-| `hermes` | 交互式对话 |
+| `hermes` | 交互式对话（终端） |
+| `hermes desktop` | 原生桌面应用（Electron GUI） |
+| `hermes --tui` | 终端全屏 UI |
 | `hermes doctor` | 诊断环境与密钥 |
 | `hermes gateway start` | 消息网关（需先 `gateway setup`） |
 

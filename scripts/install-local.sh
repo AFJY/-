@@ -48,7 +48,8 @@ if [ -z "${DEEPSEEK_API_KEY:-}" ]; then
 fi
 
 echo ""
-echo "==> [1/3] 安装 / 更新 Hermes Agent ..."
+STEPS=$([ "${OS}" = "Linux" ] && echo 4 || echo 3)
+echo "==> [1/${STEPS}] 安装 / 更新 Hermes Agent ..."
 bash "${SCRIPT_DIR}/install-hermes-deepseek.sh"
 
 export PATH="${HOME}/.local/bin:${HOME}/.npm-global/bin:${PATH}"
@@ -59,17 +60,25 @@ if ! grep -q '.local/bin' "${HOME}/.bashrc" 2>/dev/null; then
 fi
 
 echo ""
-echo "==> [2/3] 配置 DeepSeek ..."
+echo "==> [2/${STEPS}] 配置 DeepSeek ..."
 hermes config set DEEPSEEK_API_KEY "${DEEPSEEK_API_KEY}"
 hermes config set web.search_backend ddgs 2>/dev/null || true
 
 if [ "${OS}" = "Linux" ]; then
   echo ""
-  echo "==> [3/3] 安装桌面快捷方式 ..."
+  echo "==> [3/4] 构建 Hermes Desktop（原生 GUI）..."
+  if hermes desktop --build-only 2>&1; then
+    echo "Hermes Desktop 构建完成"
+  else
+    echo "WARN: Desktop 构建失败，快捷方式将使用终端 TUI"
+  fi
+  echo ""
+  echo "==> [4/4] 安装桌面快捷方式 ..."
   bash "${SCRIPT_DIR}/desktop/install-desktop-shortcuts.sh"
 else
   echo ""
   echo "==> [3/3] 跳过桌面快捷方式 (非 Linux)"
+  echo "macOS 可用: hermes desktop"
 fi
 
 echo ""

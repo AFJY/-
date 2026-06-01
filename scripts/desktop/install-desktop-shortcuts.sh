@@ -35,10 +35,31 @@ if [ -f "${HERMES_REPO}/website/static/img/logo.png" ]; then
   cp "${HERMES_REPO}/website/static/img/logo.png" "${ICONS}/hermes-agent.png"
 fi
 
-cat > "${BIN}/hermes-desktop-chat.sh" << 'EOF'
+HERMES_NATIVE="${HERMES_REPO}/apps/desktop/release/linux-unpacked/Hermes"
+if [ ! -x "${HERMES_NATIVE}" ]; then
+  HERMES_NATIVE="${HERMES_REPO}/apps/desktop/release/linux-unpacked/hermes"
+fi
+
+cat > "${BIN}/hermes-desktop-native.sh" << EOF
 #!/usr/bin/env bash
-export PATH="${HOME}/.local/bin:${HOME}/.npm-global/bin:${PATH}"
-cd "${HOME}"
+export PATH="\${HOME}/.local/bin:\${HOME}/.npm-global/bin:\${PATH}"
+export DISPLAY="\${DISPLAY:-:0}"
+cd "\${HOME}"
+NATIVE="${HERMES_NATIVE}"
+if [ -x "\${NATIVE}" ]; then
+  exec "\${NATIVE}" "\$@"
+fi
+exec hermes desktop --skip-build "\$@"
+EOF
+chmod +x "${BIN}/hermes-desktop-native.sh"
+
+cat > "${BIN}/hermes-desktop-chat.sh" << EOF
+#!/usr/bin/env bash
+export PATH="\${HOME}/.local/bin:\${HOME}/.npm-global/bin:\${PATH}"
+cd "\${HOME}"
+if [ -x "${BIN}/hermes-desktop-native.sh" ]; then
+  exec "${BIN}/hermes-desktop-native.sh" "\$@"
+fi
 exec hermes --tui
 EOF
 
@@ -100,9 +121,15 @@ case "${TERM_CMD}" in
     ;;
 esac
 
-write_desktop "${APPS}/hermes-agent.desktop" "Hermes Agent" \
-  "DeepSeek AI 助手" \
-  "${CHAT_EXEC}"
+if [ -x "${HERMES_NATIVE}" ] || [ -x "${BIN}/hermes-desktop-native.sh" ]; then
+  write_desktop "${APPS}/hermes-agent.desktop" "Hermes Agent" \
+    "DeepSeek AI 助手（原生桌面）" \
+    "${BIN}/hermes-desktop-native.sh"
+else
+  write_desktop "${APPS}/hermes-agent.desktop" "Hermes Agent" \
+    "DeepSeek AI 助手" \
+    "${CHAT_EXEC}"
+fi
 
 write_desktop "${APPS}/hermes-dashboard.desktop" "Hermes 控制台" \
   "Web 管理面板" \
