@@ -28,7 +28,7 @@ hermes postinstall
 
 echo "==> Playwright Chromium..."
 cd "${HERMES_ROOT}"
-npx playwright install chromium 2>/dev/null || true
+npx --yes playwright install chromium 2>/dev/null || true
 if command -v sudo >/dev/null && sudo -n true 2>/dev/null; then
   sudo DEBIAN_FRONTEND=noninteractive npx playwright install-deps chromium 2>/dev/null || true
 fi
