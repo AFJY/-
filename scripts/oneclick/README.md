@@ -22,9 +22,16 @@ irm "https://raw.githubusercontent.com/AFJY/-/cursor/hermes-desktop-deploy-a460/
 
 ### 仅补建桌面图标（已装好 Hermes）
 
+**推荐（避免引号/管道报错）：**
+
 ```powershell
-irm "https://raw.githubusercontent.com/AFJY/-/cursor/hermes-desktop-deploy-a460/scripts/windows/Create-HermesShortcuts-Native.ps1" | iex
+Set-ExecutionPolicy -Scope Process Bypass
+$url = "https://raw.githubusercontent.com/AFJY/-/cursor/hermes-desktop-deploy-a460/scripts/windows/Create-HermesShortcuts-Native.ps1"
+Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\hermes-shortcuts.ps1" -UseBasicParsing
+& "$env:TEMP\hermes-shortcuts.ps1"
 ```
+
+> 若出现「不允许使用空管道元素」，不要用 `irm ... | iex`，请用上面三行；引号必须是英文直引号 `"`。
 
 ---
 
