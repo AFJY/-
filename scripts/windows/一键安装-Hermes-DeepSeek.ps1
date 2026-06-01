@@ -16,7 +16,7 @@ if (-not $env:DEEPSEEK_API_KEY) {
 $Url = "https://raw.githubusercontent.com/AFJY/-/${Branch}/scripts/windows/Install-HermesWindowsNative.ps1"
 $Temp = Join-Path $env:TEMP "Install-HermesWindowsNative.ps1"
 
-Write-Host "下载安装脚本..."
+Write-Host "[$(Get-Date -Format 'HH:mm:ss')] 下载安装脚本..."
 Invoke-WebRequest -Uri $Url -OutFile $Temp -UseBasicParsing
-Write-Host "开始安装（首次约 5-15 分钟）..."
+Write-Host "[$(Get-Date -Format 'HH:mm:ss')] 开始安装（5-15 分钟，窗口会持续有 [进度] 输出）..."
 & $Temp

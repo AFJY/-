@@ -80,13 +80,36 @@ $key = Get-DeepSeekKey
 Set-DeepSeekConfig -Key $key
 
 Write-Host "==> [1/3] 安装 Hermes Agent（官方 Windows 安装器）..." -ForegroundColor Green
-Write-Host "    首次约 5–15 分钟，请保持网络畅通。" -ForegroundColor DarkGray
+Write-Host "    首次约 5–15 分钟。下面会持续输出 [进度] 行，长时间无输出=仍在下载，请勿关窗口。" -ForegroundColor Yellow
+Write-Host ""
 
 $installUrl = "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1"
 $installScript = Join-Path $env:TEMP "hermes-official-install.ps1"
-$ProgressPreference = "SilentlyContinue"
-Invoke-WebRequest -Uri $installUrl -OutFile $installScript -UseBasicParsing
+
+Write-Host "[进度] $(Get-Date -Format 'HH:mm:ss') 正在下载官方安装脚本..." -ForegroundColor Cyan
+try {
+    Invoke-WebRequest -Uri $installUrl -OutFile $installScript -UseBasicParsing
+} catch {
+    Write-Host "[错误] 无法下载安装脚本。请检查网络/GitHub 是否可访问。" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    Read-Host "按 Enter 退出"
+    exit 1
+}
+if (-not (Test-Path $installScript)) {
+    Write-Host "[错误] 下载失败，文件不存在: $installScript" -ForegroundColor Red
+    Read-Host "按 Enter 退出"
+    exit 1
+}
+$kb = [math]::Round((Get-Item $installScript).Length / 1KB, 1)
+Write-Host "[进度] $(Get-Date -Format 'HH:mm:ss') 下载完成 (${kb} KB)，开始安装（请耐心等待）..." -ForegroundColor Cyan
+
+# 官方脚本内部会下载 Python/Git/Node，可能 10+ 分钟无新行，属正常
+$ProgressPreference = "Continue"
 & $installScript -SkipSetup -NonInteractive -IncludeDesktop
+if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
+    Write-Host "[警告] 官方安装器退出码: $LASTEXITCODE（若末尾有 [OK] 可忽略）" -ForegroundColor Yellow
+}
+Write-Host "[进度] $(Get-Date -Format 'HH:mm:ss') 官方安装步骤结束" -ForegroundColor Cyan
 
 # 刷新 PATH（当前会话）
 $env:Path = [Environment]::GetEnvironmentVariable("Path", "User") + ";" +
