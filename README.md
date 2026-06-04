@@ -89,6 +89,10 @@ hermes doctor
 
 会额外安装：全部 lazy Python 包（Telegram、Discord、Slack、Matrix、FAL、Exa 等）、Playwright Chromium、Docker、`ddgs` 免费网页搜索、Codex CLI、Skills Hub 初始化。
 
+## 浏览器自动化入门
+
+Playwright + Python 示例与中文教程见 [examples/browser-automation/README.md](examples/browser-automation/README.md)。
+
 以下仍需你自行配置密钥（见 `.env.example`）：`DEEPSEEK_API_KEY`、`FAL_KEY`、各消息平台 Bot Token、`OPENROUTER_API_KEY`、`XAI_API_KEY` 等。`computer_use` 仅支持 macOS。
 
 ## 手动配置 API Key
