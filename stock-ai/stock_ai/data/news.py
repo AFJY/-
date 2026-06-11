@@ -36,6 +36,8 @@ class NewsAnalyzer:
         for url in self.rss_feeds:
             try:
                 resp = requests.get(url, timeout=self.timeout)
+                if resp.status_code == 429:
+                    continue
                 resp.raise_for_status()
                 feed = feedparser.parse(resp.content)
                 for entry in feed.entries[:20]:
@@ -44,7 +46,20 @@ class NewsAnalyzer:
                         headlines.append(title)
             except (requests.RequestException, OSError):
                 continue
+        if not headlines:
+            headlines.extend(self._fetch_ashare_headlines())
         return headlines
+
+    def _fetch_ashare_headlines(self) -> list[str]:
+        """Fallback: akshare/em headlines when RSS rate-limited."""
+        try:
+            import akshare as ak
+            df = ak.stock_news_em(symbol="600519")
+            if df is not None and not df.empty and "新闻标题" in df.columns:
+                return [str(t) for t in df["新闻标题"].head(15).tolist()]
+        except (ImportError, ValueError, OSError, KeyError):
+            pass
+        return []
 
     @staticmethod
     def _score_text(text: str) -> float:

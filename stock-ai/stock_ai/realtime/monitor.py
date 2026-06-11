@@ -204,6 +204,39 @@ class RealtimeMonitor:
 
     def reload_config(self) -> None:
         self.config = load_config(self.config_path)
+        monthly_cfg = self.config.get("monthly", {})
+        self.monthly.target_return_pct = monthly_cfg.get("target_return_pct", 5.0)
+
+    def snapshot(self) -> dict[str, Any]:
+        """Lightweight status without fetching quotes or trading."""
+        prices = {q.symbol: q.price for q in self.quote_store.all_quotes()}
+        equity = self.portfolio.total_equity(prices) if prices else self.portfolio.cash
+        cycle = self.monthly.ensure_cycle(equity)
+        return {
+            "type": "snapshot",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "quotes": [
+                {
+                    "symbol": q.symbol,
+                    "name": q.name,
+                    "price": q.price,
+                    "change_pct": q.change_pct,
+                    "source": q.source,
+                }
+                for q in self.quote_store.all_quotes()
+            ],
+            "portfolio": {
+                "equity": equity,
+                "cash": self.portfolio.cash,
+                "positions": {s: p.shares for s, p in self.portfolio.positions.items()},
+            },
+            "monthly": cycle.to_dict(),
+            "signals": self._last_signals,
+            "paused": self._paused,
+            "ths_connected": self.quote_store.ths_connected,
+            "news_score": self._last_news_score,
+            "equity_curve": self.equity_log.get_curve(200),
+        }
 
     def set_monthly_target(self, pct: float) -> float:
         from stock_ai.config_manager import set_monthly_target
@@ -220,11 +253,19 @@ class RealtimeMonitor:
 
     def _loop_run(self) -> None:
         interval = self.config.get("realtime", {}).get("poll_interval_sec", 30)
+        log_dir = resolve_path(self.config["runtime"]["log_dir"], self.config)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        err_log = log_dir / "overnight.log"
         while self._running:
             try:
                 self.tick()
             except Exception as e:
                 self._broadcast({"type": "error", "message": str(e)})
+                try:
+                    with err_log.open("a", encoding="utf-8") as f:
+                        f.write(f"[{datetime.now(timezone.utc).isoformat()}] tick error: {e}\n")
+                except OSError:
+                    pass
             threading.Event().wait(interval)
 
     def start(self) -> None:

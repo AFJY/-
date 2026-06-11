@@ -17,7 +17,7 @@ trading:
   slippage_rate: 0.0005
   min_confidence: 0.55
 monthly:
-  target_return_pct: 6.0
+  target_return_pct: 8.0
   state_file: data/monthly_state.json
   retrain_on_new_month: true
 risk:

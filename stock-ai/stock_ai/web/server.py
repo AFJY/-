@@ -69,24 +69,28 @@ def create_app(config_path: str = "config.yaml") -> FastAPI:
     async def index() -> str:
         return (STATIC_DIR / "index.html").read_text(encoding="utf-8")
 
+    @app.get("/api/health")
+    async def health() -> dict[str, Any]:
+        return {
+            "ok": True,
+            "running": monitor._running,
+            "paused": monitor._paused,
+            "ths_connected": monitor.quote_store.ths_connected,
+        }
+
     @app.get("/api/status")
     async def api_status() -> dict[str, Any]:
         """Lightweight status from cache; use POST /api/tick for full refresh."""
-        prices = {q.symbol: q.price for q in monitor.quote_store.all_quotes()}
-        equity = monitor.portfolio.total_equity(prices) if prices else monitor.portfolio.cash
-        cycle = monitor.monthly.ensure_cycle(equity)
+        snap = monitor.snapshot()
         return {
-            "equity": equity,
-            "cash": monitor.portfolio.cash,
-            "monthly": cycle.to_dict(),
-            "quotes": [
-                {"symbol": q.symbol, "name": q.name, "price": q.price, "change_pct": q.change_pct, "source": q.source}
-                for q in monitor.quote_store.all_quotes()
-            ],
-            "signals": monitor._last_signals,
-            "paused": monitor._paused,
-            "ths_connected": monitor.quote_store.ths_connected,
-            "equity_curve": monitor.equity_log.get_curve(200),
+            "equity": snap["portfolio"]["equity"],
+            "cash": snap["portfolio"]["cash"],
+            "monthly": snap["monthly"],
+            "quotes": snap["quotes"],
+            "signals": snap["signals"],
+            "paused": snap["paused"],
+            "ths_connected": snap["ths_connected"],
+            "equity_curve": snap["equity_curve"],
         }
 
     @app.get("/api/equity-curve")
@@ -125,7 +129,7 @@ def create_app(config_path: str = "config.yaml") -> FastAPI:
         ws_clients.append(ws)
         try:
             await ws.send_json({"type": "welcome", "message": "Stock AI 实时连接已建立"})
-            await ws.send_json(monitor.tick())
+            await ws.send_json(monitor.snapshot())
             while True:
                 raw = await ws.receive_text()
                 try:

@@ -82,6 +82,12 @@ class MonthlyManager:
             data["current"] = current
             self.save_history(data)
 
+        # Keep stored cycle but sync target if config changed
+        if current.get("target_return_pct") != self.target_return_pct:
+            current["target_return_pct"] = self.target_return_pct
+            data["current"] = current
+            self.save_history(data)
+
         cycle = MonthlyCycle(
             month=current["month"],
             start_equity=current["start_equity"],
