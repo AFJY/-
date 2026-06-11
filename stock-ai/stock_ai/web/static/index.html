@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stock AI 实时盯盘</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#8b9cb3; --green:#3dd68c; --red:#f07178; --accent:#6cb6ff; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:16px 24px; border-bottom:1px solid #2a3544; display:flex; justify-content:space-between; align-items:center; }
+    h1 { margin:0; font-size:1.25rem; }
+    .badge { font-size:.75rem; padding:4px 8px; border-radius:999px; background:#243044; color:var(--muted); }
+    .badge.on { background:#1a3d2e; color:var(--green); }
+    main { display:grid; grid-template-columns:1fr 340px; gap:16px; padding:16px 24px; }
+    .card { background:var(--card); border-radius:12px; padding:16px; border:1px solid #2a3544; }
+    .card h2 { margin:0 0 12px; font-size:.95rem; color:var(--muted); font-weight:600; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+    .stat .label { font-size:.75rem; color:var(--muted); }
+    .stat .value { font-size:1.4rem; font-weight:700; margin-top:4px; }
+    table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    th, td { text-align:left; padding:8px 6px; border-bottom:1px solid #2a3544; }
+    .up { color:var(--green); } .down { color:var(--red); }
+    .cmd-box { display:flex; gap:8px; margin-top:8px; }
+    input, button { border-radius:8px; border:1px solid #2a3544; background:#0f1419; color:var(--text); padding:10px 12px; }
+    input { flex:1; }
+    button { background:var(--accent); color:#0f1419; border:none; font-weight:600; cursor:pointer; }
+    #log { max-height:200px; overflow:auto; font-size:.8rem; color:var(--muted); }
+    #log div { padding:4px 0; border-bottom:1px solid #243044; }
+    @media (max-width:900px) { main { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stock AI 实时盯盘 · 模拟盘</h1>
+    <span id="conn" class="badge">连接中...</span>
+    <span id="ths" class="badge">同花顺: 未连接</span>
+  </header>
+  <div style="padding:0 24px 8px">
+    <div class="stats">
+      <div class="card stat"><div class="label">总权益</div><div class="value" id="equity">—</div></div>
+      <div class="card stat"><div class="label">本月收益</div><div class="value" id="monthRet">—</div></div>
+      <div class="card stat"><div class="label">月目标进度</div><div class="value" id="monthProg">—</div></div>
+    </div>
+  </div>
+  <main>
+    <section class="card">
+      <h2>实时行情</h2>
+      <table>
+        <thead><tr><th>代码</th><th>名称</th><th>现价</th><th>涨跌%</th><th>来源</th></tr></thead>
+        <tbody id="quotes"></tbody>
+      </table>
+    </section>
+    <aside>
+      <div class="card">
+        <h2>与我交互</h2>
+        <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px">输入命令：status / pause / resume / tick / train / help</p>
+        <div class="cmd-box">
+          <input id="cmdInput" placeholder="例如: status" />
+          <button onclick="sendCmd()">发送</button>
+        </div>
+        <div id="log" style="margin-top:12px"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>最新信号</h2>
+        <div id="signals" style="font-size:.8rem"></div>
+      </div>
+    </aside>
+  </main>
+  <script>
+    const log = (msg) => {
+      const el = document.getElementById('log');
+      const d = document.createElement('div');
+      d.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+      el.prepend(d);
+    };
+    let ws;
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen = () => { document.getElementById('conn').textContent = '已连接'; document.getElementById('conn').classList.add('on'); };
+      ws.onclose = () => { document.getElementById('conn').textContent = '已断开'; document.getElementById('conn').classList.remove('on'); setTimeout(connect, 3000); };
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'command_result') { log(data.message); return; }
+        if (data.type === 'welcome') { log(data.message); return; }
+        if (data.quotes) renderTick(data);
+      };
+    }
+    function renderTick(data) {
+      if (data.portfolio) {
+        document.getElementById('equity').textContent = data.portfolio.equity.toLocaleString(undefined,{maximumFractionDigits:2});
+      }
+      if (data.monthly) {
+        const m = data.monthly;
+        const ret = document.getElementById('monthRet');
+        ret.textContent = (m.return_pct >= 0 ? '+' : '') + m.return_pct.toFixed(2) + '%';
+        ret.className = 'value ' + (m.return_pct >= 0 ? 'up' : 'down');
+        document.getElementById('monthProg').textContent = m.progress_pct.toFixed(0) + '% / 目标' + m.target_return_pct + '%';
+      }
+      const ths = document.getElementById('ths');
+      if (data.ths_connected) { ths.textContent = '同花顺: 已连接'; ths.classList.add('on'); }
+      const tbody = document.getElementById('quotes');
+      tbody.innerHTML = (data.quotes || []).map(q => `
+        <tr>
+          <td>${q.symbol}</td><td>${q.name||''}</td>
+          <td>${q.price.toFixed(2)}</td>
+          <td class="${q.change_pct>=0?'up':'down'}">${q.change_pct>=0?'+':''}${q.change_pct.toFixed(2)}%</td>
+          <td>${q.source}</td>
+        </tr>`).join('');
+      const sig = document.getElementById('signals');
+      sig.innerHTML = (data.signals || []).slice(0,8).map(s =>
+        `<div>${s.symbol} <b>${s.action}</b> ${(s.confidence*100).toFixed(0)}%</div>`).join('');
+    }
+    function sendCmd() {
+      const input = document.getElementById('cmdInput');
+      const cmd = input.value.trim();
+      if (!cmd || !ws || ws.readyState !== 1) return;
+      ws.send(JSON.stringify({type:'command', command: cmd}));
+      input.value = '';
+    }
+    document.getElementById('cmdInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendCmd(); });
+    connect();
+  </script>
+</body>
+</html>

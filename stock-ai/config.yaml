@@ -2,52 +2,53 @@
 # 模拟盘配置 — 不涉及真实资金
 
 market:
-  # 大盘 / 指数 ETF（yfinance 代码）
   indices:
-    - symbol: "SPY"
-      name: "S&P 500 ETF"
-    - symbol: "QQQ"
-      name: "Nasdaq 100 ETF"
     - symbol: "000001.SS"
       name: "上证指数"
     - symbol: "399001.SZ"
       name: "深证成指"
+    - symbol: "SPY"
+      name: "S&P 500 ETF"
 
-  # 个股观察池（可扩展）
   watchlist:
-    - "AAPL"
-    - "MSFT"
-    - "NVDA"
     - "600519.SS"  # 贵州茅台
+    - "000858.SZ"  # 五粮液
+    - "601318.SS"  # 中国平安
+    - "300750.SZ"  # 宁德时代
 
 trading:
-  initial_capital: 1000000.0   # 模拟初始资金（人民币/美元按 symbol 市场理解）
-  max_position_pct: 0.25     # 单标的最大仓位占比
-  commission_rate: 0.0003    # 模拟手续费
-  slippage_rate: 0.0005      # 模拟滑点
-  min_confidence: 0.55       # ML 信号最低置信度才下单
+  initial_capital: 1000000.0
+  max_position_pct: 0.25
+  commission_rate: 0.0003
+  slippage_rate: 0.0005
+  min_confidence: 0.55
+
+# 月度收益周期
+monthly:
+  target_return_pct: 5.0        # 月目标收益率（模拟）
+  state_file: "data/monthly_state.json"
+  retrain_on_new_month: true
 
 learning:
-  lookback_days: 365         # 训练数据回看天数
-  retrain_interval_days: 7   # 每隔 N 天自动重训
-  features:
-    - rsi
-    - macd
-    - bbands
-    - volume_sma_ratio
-    - return_5d
-    - return_20d
+  lookback_days: 365
+  retrain_interval_days: 7
 
 news:
   enabled: true
-  # 免费 RSS 源（开源/公开信息）
   rss_feeds:
     - "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC&region=US&lang=en-US"
-    - "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^IXIC&region=US&lang=en-US"
-  sentiment_weight: 0.15     # 新闻情绪在综合信号中的权重
+  sentiment_weight: 0.15
+
+# 实时盯盘
+realtime:
+  poll_interval_sec: 30         # 云端轮询间隔（秒）
+  auto_trade: true              # 实时信号自动模拟下单
+  prefer_ths_bridge: true       # 同花顺桥接连接时优先用桌面行情
 
 runtime:
   data_dir: "data"
   model_dir: "models"
   log_dir: "logs"
   state_file: "data/portfolio_state.json"
+  web_host: "0.0.0.0"
+  web_port: 8765

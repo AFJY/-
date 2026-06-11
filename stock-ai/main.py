@@ -56,6 +56,19 @@ def cmd_backtest(args: argparse.Namespace) -> None:
     console.print(f"最大回撤: {result.max_drawdown_pct:.2f}%")
 
 
+def cmd_serve(args: argparse.Namespace) -> None:
+    import uvicorn
+    from stock_ai.web.server import create_app
+
+    config = load_config(args.config)
+    host = config.get("runtime", {}).get("web_host", "0.0.0.0")
+    port = int(config.get("runtime", {}).get("web_port", 8765))
+    app = create_app(args.config)
+    console.print(f"[bold green]Stock AI 仪表盘:[/] http://{host}:{port}")
+    console.print(f"同花顺桥接: python bridge/ths_agent.py --server ws://HOST:{port}/ws/ths")
+    uvicorn.run(app, host=host, port=port, log_level="info")
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     import json
     config = load_config(args.config)
@@ -77,6 +90,7 @@ def main() -> None:
     sub.add_parser("train", help="用历史数据训练/更新 ML 模型").set_defaults(func=cmd_train)
     sub.add_parser("run", help="拉取最新行情并执行一轮模拟交易").set_defaults(func=cmd_run)
     sub.add_parser("status", help="查看当前模拟盘持仓").set_defaults(func=cmd_status)
+    sub.add_parser("serve", help="启动实时盯盘 Web 仪表盘 + 自动交易").set_defaults(func=cmd_serve)
 
     bt = sub.add_parser("backtest", help="对单个标的做历史回测")
     bt.add_argument("-s", "--symbol", default="SPY", help="标的代码")

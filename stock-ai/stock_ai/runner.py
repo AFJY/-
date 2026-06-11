@@ -13,6 +13,7 @@ from stock_ai.config import load_config, resolve_path
 from stock_ai.data.fetcher import MarketDataFetcher
 from stock_ai.data.news import NewsAnalyzer
 from stock_ai.trading.engine import PaperTradingEngine
+from stock_ai.trading.monthly import MonthlyManager
 from stock_ai.trading.portfolio import Portfolio
 
 console = Console()
@@ -52,14 +53,20 @@ def run_paper_trading(config: dict) -> dict:
     news_analyzer = None
     if news_cfg.get("enabled", True):
         news_analyzer = NewsAnalyzer(news_cfg.get("rss_feeds", []))
+    min_confidence = config["trading"]["min_confidence"]
     aggregator = SignalAggregator(
         learner=learner,
         news_analyzer=news_analyzer,
         sentiment_weight=news_cfg.get("sentiment_weight", 0.15),
-        min_confidence=config["trading"]["min_confidence"],
+        min_confidence=min_confidence,
     )
 
     trading = config["trading"]
+    monthly_cfg = config.get("monthly", {})
+    monthly = MonthlyManager(
+        resolve_path(monthly_cfg.get("state_file", "data/monthly_state.json"), config),
+        target_return_pct=monthly_cfg.get("target_return_pct", 5.0),
+    )
     portfolio = Portfolio.load(state_file, trading["initial_capital"])
     engine = PaperTradingEngine(
         portfolio=portfolio,
@@ -73,6 +80,16 @@ def run_paper_trading(config: dict) -> dict:
     prices: dict[str, float] = {}
     signals = []
     executed = []
+
+    for sym in symbols:
+        try:
+            df = fetcher.fetch_history(sym, days=min(30, config["learning"]["lookback_days"]))
+            prices[sym] = float(df["close"].iloc[-1])
+        except (ValueError, OSError):
+            pass
+    pre_equity = portfolio.total_equity(prices) if prices else portfolio.cash
+    cycle = monthly.ensure_cycle(pre_equity)
+    aggregator.min_confidence = monthly.adjust_confidence(min_confidence, cycle)
 
     for sym in symbols:
         try:
@@ -91,11 +108,14 @@ def run_paper_trading(config: dict) -> dict:
         except (ValueError, OSError, FileNotFoundError) as e:
             console.print(f"[yellow]⚠[/] {sym}: {e}")
 
+    equity = portfolio.total_equity(prices)
+    cycle = monthly.update_equity(equity, trades_delta=len(executed))
     portfolio.save(state_file)
     summary = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "equity": portfolio.total_equity(prices),
+        "equity": equity,
         "cash": portfolio.cash,
+        "monthly": cycle.to_dict(),
         "positions": {s: p.shares for s, p in portfolio.positions.items()},
         "signals": [
             {"symbol": s.symbol, "action": s.action, "confidence": s.confidence, "reason": s.reason}
@@ -117,6 +137,10 @@ def print_status(summary: dict, config: dict) -> None:
     table.add_row("现金", f"{summary['cash']:,.2f}")
     table.add_row("本次成交", str(summary["executed_trades"]))
     table.add_row("新闻情绪", f"{summary['news_score']:+.2f}")
+    if "monthly" in summary:
+        m = summary["monthly"]
+        table.add_row("本月收益", f"{m['return_pct']:+.2f}%")
+        table.add_row("月目标进度", f"{m['progress_pct']:.0f}%")
     console.print(table)
 
     sig_table = Table(title="交易信号")
