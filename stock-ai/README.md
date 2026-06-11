@@ -17,35 +17,44 @@
 | 同花顺自选股 | 桥接脚本自动读取并同步 watchlist |
 | 交互 | 网页命令 / API / 与我（Cursor）协作改代码 |
 
-## 本机部署
+## 一键脚本（推荐）
+
+```bash
+# Linux / macOS
+cd stock-ai
+bash scripts/stock-ai.sh start      # 启动服务 + 守护
+bash scripts/stock-ai.sh status     # 查看状态
+bash scripts/stock-ai.sh morning    # 早上看这个
+bash scripts/stock-ai.sh stop       # 停止
+```
+
+```powershell
+# Windows
+cd stock-ai
+.\scripts\stock-ai.ps1 start        # 启动服务
+.\scripts\stock-ai.ps1 bridge      # 同花顺桥接
+.\scripts\stock-ai.ps1 morning     # 早上查看
+```
+
+浏览器：**http://localhost:8765**
+
+## 本机部署（手动）
 
 ### Linux / macOS
 
 ```bash
-cd stock-ai
 bash scripts/install-local.sh
 python3 main.py train
 bash scripts/start-stock-ai.sh
-# 或: python3 main.py serve
 ```
 
-### Windows（推荐：同花顺在同台电脑）
+### Windows
 
 ```powershell
-cd stock-ai
 .\scripts\install-windows.ps1
 python main.py train
 python main.py serve
 ```
-
-**另开终端 — 同花顺桥接（读自选股 + 推行情）：**
-
-```powershell
-cd bridge
-python ths_agent.py --server ws://127.0.0.1:8765/ws/ths --sync-watchlist --ui
-```
-
-浏览器：**http://localhost:8765**
 
 ## 同花顺自选股
 
