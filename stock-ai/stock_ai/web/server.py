@@ -27,6 +27,14 @@ class ThsQuotePayload(BaseModel):
     timestamp: str = ""
 
 
+class WatchlistSync(BaseModel):
+    symbols: list[str]
+
+
+class MonthlyTarget(BaseModel):
+    target_return_pct: float
+
+
 def create_app(config_path: str = "config.yaml") -> FastAPI:
     app = FastAPI(title="Stock AI Dashboard", version="0.2.0")
     monitor = get_monitor(config_path)
@@ -78,7 +86,22 @@ def create_app(config_path: str = "config.yaml") -> FastAPI:
             "signals": monitor._last_signals,
             "paused": monitor._paused,
             "ths_connected": monitor.quote_store.ths_connected,
+            "equity_curve": monitor.equity_log.get_curve(200),
         }
+
+    @app.get("/api/equity-curve")
+    async def equity_curve() -> dict[str, Any]:
+        return {"curve": monitor.equity_log.get_curve(500)}
+
+    @app.post("/api/watchlist/sync")
+    async def watchlist_sync(body: WatchlistSync) -> dict[str, Any]:
+        symbols = monitor.sync_watchlist(body.symbols)
+        return {"ok": True, "watchlist": symbols, "count": len(symbols)}
+
+    @app.post("/api/monthly/target")
+    async def monthly_target(body: MonthlyTarget) -> dict[str, Any]:
+        pct = monitor.set_monthly_target(body.target_return_pct)
+        return {"ok": True, "target_return_pct": pct}
 
     @app.post("/api/tick")
     async def api_tick() -> dict[str, Any]:
@@ -132,6 +155,9 @@ def create_app(config_path: str = "config.yaml") -> FastAPI:
                 if msg.get("type") == "quote":
                     monitor.ingest_ths_quote(msg)
                     await _broadcast({"type": "tick_partial", "quote": msg})
+                elif msg.get("type") == "watchlist":
+                    symbols = monitor.sync_watchlist(msg.get("symbols", []))
+                    await ws.send_json({"type": "watchlist_synced", "symbols": symbols})
                 elif msg.get("type") == "ping":
                     await ws.send_json({"type": "pong"})
         except WebSocketDisconnect:

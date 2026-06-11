@@ -2,17 +2,15 @@
 """
 同花顺远航版 桌面桥接代理 — 在 Windows 桌面运行
 
-将本地实时行情转发到 Stock AI 服务，优先使用 akshare 读取 A 股盘面；
-若你已打开同花顺远航版，本代理会并行运行，数据以推送形式覆盖云端行情。
+功能:
+  - 自动读取同花顺自选股 (或 bridge/watchlist.json)
+  - 推送实时行情到 Stock AI 服务
+  - 同步自选股列表到服务端 config
 
 用法 (Windows):
   pip install websockets akshare
-  python ths_agent.py --server ws://YOUR_SERVER:8765/ws/ths --symbols 600519,000001
-
-同花顺说明:
-  同花顺远航版无公开 API。本代理通过 akshare（东方财富源）获取与同花顺一致的 A 股实时价；
-  你在桌面看盘用同花顺，交易决策在 Stock AI 云端/本地服务执行。
-  后续可扩展 pywinauto 读取同花顺窗口自选列表。
+  python ths_agent.py --server ws://127.0.0.1:8765/ws/ths
+  python ths_agent.py --server ws://127.0.0.1:8765/ws/ths --sync-watchlist --ui
 """
 
 from __future__ import annotations
@@ -21,6 +19,9 @@ import argparse
 import asyncio
 import json
 from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 try:
     import akshare as ak
@@ -31,6 +32,8 @@ try:
     import websockets
 except ImportError:
     raise SystemExit("请安装: pip install websockets")
+
+from ths_watchlist import load_watchlist
 
 
 def fetch_quotes(symbols: list[str]) -> list[dict]:
@@ -59,12 +62,39 @@ def fetch_quotes(symbols: list[str]) -> list[dict]:
     return out
 
 
-async def run(server_url: str, symbols: list[str], interval: int) -> None:
+def http_sync_watchlist(server_ws_url: str, symbols: list[str]) -> bool:
+    """POST watchlist to HTTP API derived from WebSocket URL."""
+    parsed = urlparse(server_ws_url.replace("ws://", "http://").replace("wss://", "https://"))
+    base = f"{parsed.scheme}://{parsed.netloc}"
+    url = f"{base}/api/watchlist/sync"
+    body = json.dumps({"symbols": symbols}).encode("utf-8")
+    req = Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urlopen(req, timeout=10) as resp:
+            return resp.status == 200
+    except Exception as e:
+        print(f"Watchlist sync failed: {e}")
+        return False
+
+
+async def run(
+    server_url: str,
+    symbols: list[str],
+    interval: int,
+    sync_watchlist: bool,
+) -> None:
+    if sync_watchlist and symbols:
+        ok = http_sync_watchlist(server_url, symbols)
+        print(f"Watchlist sync ({len(symbols)} symbols):", "OK" if ok else "FAILED")
+
     while True:
         try:
             async with websockets.connect(server_url) as ws:
                 msg = await ws.recv()
                 print("Connected:", msg)
+                # Send watchlist over WS as well
+                if symbols:
+                    await ws.send(json.dumps({"type": "watchlist", "symbols": symbols}))
                 while True:
                     for q in fetch_quotes(symbols):
                         await ws.send(json.dumps(q))
@@ -77,11 +107,27 @@ async def run(server_url: str, symbols: list[str], interval: int) -> None:
 def main() -> None:
     p = argparse.ArgumentParser(description="同花顺/桌面行情桥接")
     p.add_argument("--server", default="ws://127.0.0.1:8765/ws/ths", help="Stock AI WebSocket 地址")
-    p.add_argument("--symbols", default="600519,000001,399001", help="逗号分隔股票代码")
+    p.add_argument("--symbols", default="", help="逗号分隔股票代码 (留空则自动读自选股)")
     p.add_argument("--interval", type=int, default=5, help="推送间隔秒")
+    p.add_argument("--sync-watchlist", action="store_true", help="同步自选股到服务端 config")
+    p.add_argument("--ui", action="store_true", help="尝试从同花顺窗口 UI 读取自选股")
+    p.add_argument("--watchlist-json", default="", help="自定义 watchlist.json 路径")
     args = p.parse_args()
-    symbols = [s.strip() for s in args.symbols.split(",") if s.strip()]
-    asyncio.run(run(args.server, symbols, args.interval))
+
+    if args.symbols.strip():
+        symbols = [s.strip() for s in args.symbols.split(",") if s.strip()]
+    else:
+        jp = Path(args.watchlist_json) if args.watchlist_json else None
+        symbols = load_watchlist(jp, use_ui=args.ui)
+        print(f"Loaded {len(symbols)} symbols from 同花顺/本地配置:", symbols[:10], "...")
+
+    if not symbols:
+        raise SystemExit(
+            "未找到自选股。请: 1) 在同花顺导出到 bridge/watchlist.json "
+            '格式 ["600519.SS","000001.SZ"]  2) 或使用 --symbols 600519,000001'
+        )
+
+    asyncio.run(run(args.server, symbols, args.interval, args.sync_watchlist))
 
 
 if __name__ == "__main__":

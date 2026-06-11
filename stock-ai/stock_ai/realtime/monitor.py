@@ -10,18 +10,21 @@ from stock_ai.analysis.learner import SignalLearner
 from stock_ai.analysis.signal import SignalAggregator, TradeSignal
 from stock_ai.config import load_config, resolve_path
 from stock_ai.data.fetcher import MarketDataFetcher
-from stock_ai.data.news import NewsAnalyzer
 from stock_ai.data.realtime import QuoteStore, RealtimeDataFetcher, RealtimeQuote
+from stock_ai.news_factory import build_news_analyzer
 from stock_ai.runner import all_symbols
 from stock_ai.trading.engine import PaperTradingEngine
+from stock_ai.trading.equity_log import EquityLogger
 from stock_ai.trading.monthly import MonthlyManager
 from stock_ai.trading.portfolio import Portfolio
+from stock_ai.trading.risk import RiskManager
 
 
 class RealtimeMonitor:
     """Background real-time quote polling + optional auto paper trading."""
 
     def __init__(self, config_path: str = "config.yaml"):
+        self.config_path = config_path
         self.config = load_config(config_path)
         self.quote_store = QuoteStore()
         self.rt_fetcher = RealtimeDataFetcher()
@@ -48,7 +51,16 @@ class RealtimeMonitor:
         )
         self.learner = SignalLearner(resolve_path(self.config["runtime"]["model_dir"], self.config))
         news_cfg = self.config.get("news", {})
-        news_analyzer = NewsAnalyzer(news_cfg.get("rss_feeds", [])) if news_cfg.get("enabled") else None
+        news_analyzer = build_news_analyzer(news_cfg)
+        risk_cfg = self.config.get("risk", {})
+        self.risk = RiskManager(
+            stop_loss_pct=risk_cfg.get("stop_loss_pct", 0.08),
+            take_profit_pct=risk_cfg.get("take_profit_pct", 0.15),
+            trailing_stop_pct=risk_cfg.get("trailing_stop_pct", 0.05),
+        )
+        self.equity_log = EquityLogger(
+            resolve_path(self.config["runtime"].get("equity_log", "data/equity_curve.json"), self.config)
+        )
         self.aggregator = SignalAggregator(
             learner=self.learner,
             news_analyzer=news_analyzer,
@@ -122,6 +134,15 @@ class RealtimeMonitor:
         auto_trade = self.config.get("realtime", {}).get("auto_trade", True)
 
         if not self._paused and auto_trade:
+            # Risk management: stop-loss / take-profit
+            for sym, reason in self.risk.scan_portfolio(self.portfolio, prices):
+                p = prices.get(sym, 0)
+                if p > 0:
+                    sig = TradeSignal(sym, "sell", 1.0, "sell", 1.0, 0.0, reason)
+                    trade = self.engine.execute(sig, p, equity)
+                    if trade:
+                        executed.append(trade)
+
             news = None
             if self.aggregator.news_analyzer:
                 news = self.aggregator.news_analyzer.analyze()
@@ -150,6 +171,7 @@ class RealtimeMonitor:
             {"symbol": s.symbol, "action": s.action, "confidence": s.confidence, "reason": s.reason}
             for s in signals
         ]
+        self.equity_log.append(equity, cycle.return_pct)
 
         payload = {
             "type": "tick",
@@ -175,9 +197,26 @@ class RealtimeMonitor:
             "paused": self._paused,
             "ths_connected": self.quote_store.ths_connected,
             "news_score": self._last_news_score,
+            "equity_curve": self.equity_log.get_curve(200),
         }
         self._broadcast(payload)
         return payload
+
+    def reload_config(self) -> None:
+        self.config = load_config(self.config_path)
+
+    def set_monthly_target(self, pct: float) -> float:
+        from stock_ai.config_manager import set_monthly_target
+        set_monthly_target(pct, self.config_path)
+        self.monthly.target_return_pct = pct
+        self.reload_config()
+        return pct
+
+    def sync_watchlist(self, symbols: list[str]) -> list[str]:
+        from stock_ai.config_manager import sync_watchlist
+        result = sync_watchlist(symbols, self.config_path)
+        self.reload_config()
+        return result
 
     def _loop_run(self) -> None:
         interval = self.config.get("realtime", {}).get("poll_interval_sec", 30)
@@ -228,10 +267,17 @@ class RealtimeMonitor:
             from stock_ai.runner import train_all
             train_all(self.config)
             return {"ok": True, "message": "模型训练完成"}
+        if cmd.startswith("target ") or cmd.startswith("月目标 "):
+            try:
+                pct = float(cmd.split()[-1].replace("%", ""))
+                self.set_monthly_target(pct)
+                return {"ok": True, "message": f"月目标已设为 {pct}%"}
+            except ValueError:
+                return {"ok": False, "message": "用法: target 8  (表示月目标 8%)"}
         if cmd in ("help", "帮助"):
             return {
                 "ok": True,
-                "message": "可用命令: status, pause, resume, tick, train, help",
+                "message": "命令: status, pause, resume, tick, train, target 8, help",
             }
         return {"ok": False, "message": f"未知命令: {text}。输入 help 查看帮助。"}
 

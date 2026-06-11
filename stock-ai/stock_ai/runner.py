@@ -11,7 +11,9 @@ from stock_ai.analysis.learner import SignalLearner
 from stock_ai.analysis.signal import SignalAggregator
 from stock_ai.config import load_config, resolve_path
 from stock_ai.data.fetcher import MarketDataFetcher
-from stock_ai.data.news import NewsAnalyzer
+from stock_ai.news_factory import build_news_analyzer
+from stock_ai.trading.risk import RiskManager
+from stock_ai.analysis.signal import TradeSignal
 from stock_ai.trading.engine import PaperTradingEngine
 from stock_ai.trading.monthly import MonthlyManager
 from stock_ai.trading.portfolio import Portfolio
@@ -50,9 +52,13 @@ def run_paper_trading(config: dict) -> dict:
 
     learner = SignalLearner(model_dir)
     news_cfg = config.get("news", {})
-    news_analyzer = None
-    if news_cfg.get("enabled", True):
-        news_analyzer = NewsAnalyzer(news_cfg.get("rss_feeds", []))
+    news_analyzer = build_news_analyzer(news_cfg)
+    risk_cfg = config.get("risk", {})
+    risk = RiskManager(
+        stop_loss_pct=risk_cfg.get("stop_loss_pct", 0.08),
+        take_profit_pct=risk_cfg.get("take_profit_pct", 0.15),
+        trailing_stop_pct=risk_cfg.get("trailing_stop_pct", 0.05),
+    )
     min_confidence = config["trading"]["min_confidence"]
     aggregator = SignalAggregator(
         learner=learner,
@@ -90,6 +96,15 @@ def run_paper_trading(config: dict) -> dict:
     pre_equity = portfolio.total_equity(prices) if prices else portfolio.cash
     cycle = monthly.ensure_cycle(pre_equity)
     aggregator.min_confidence = monthly.adjust_confidence(min_confidence, cycle)
+
+    equity = portfolio.total_equity(prices) if prices else portfolio.cash
+    for sym, reason in risk.scan_portfolio(portfolio, prices):
+        p = prices.get(sym, 0)
+        if p > 0:
+            sig = TradeSignal(sym, "sell", 1.0, "sell", 1.0, 0.0, reason)
+            trade = engine.execute(sig, p, equity)
+            if trade:
+                executed.append(trade)
 
     for sym in symbols:
         try:

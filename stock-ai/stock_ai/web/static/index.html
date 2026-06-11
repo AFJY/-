@@ -27,7 +27,9 @@
     button { background:var(--accent); color:#0f1419; border:none; font-weight:600; cursor:pointer; }
     #log { max-height:200px; overflow:auto; font-size:.8rem; color:var(--muted); }
     #log div { padding:4px 0; border-bottom:1px solid #243044; }
-    @media (max-width:900px) { main { grid-template-columns:1fr; } }
+    canvas { width:100%; height:160px; background:#0f1419; border-radius:8px; }
+    .target-row { display:flex; gap:8px; margin-top:8px; align-items:center; }
+    .target-row input { width:80px; }
   </style>
 </head>
 <body>
@@ -44,17 +46,31 @@
     </div>
   </div>
   <main>
-    <section class="card">
+    <section>
+      <div class="card" style="margin-bottom:16px">
+        <h2>收益曲线</h2>
+        <canvas id="equityChart" height="160"></canvas>
+      </div>
+      <div class="card">
       <h2>实时行情</h2>
       <table>
         <thead><tr><th>代码</th><th>名称</th><th>现价</th><th>涨跌%</th><th>来源</th></tr></thead>
         <tbody id="quotes"></tbody>
       </table>
+      </div>
     </section>
     <aside>
       <div class="card">
+        <h2>月目标设置</h2>
+        <div class="target-row">
+          <input id="targetInput" type="number" step="0.5" value="8" />
+          <span style="color:var(--muted)">%</span>
+          <button onclick="setTarget()">保存</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
         <h2>与我交互</h2>
-        <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px">输入命令：status / pause / resume / tick / train / help</p>
+        <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px">命令：status / pause / resume / tick / train / target 8 / help</p>
         <div class="cmd-box">
           <input id="cmdInput" placeholder="例如: status" />
           <button onclick="sendCmd()">发送</button>
@@ -75,6 +91,36 @@
       el.prepend(d);
     };
     let ws;
+    function drawCurve(points) {
+      const canvas = document.getElementById('equityChart');
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = 160 * dpr;
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, canvas.offsetWidth, 160);
+      if (!points || points.length < 2) return;
+      const w = canvas.offsetWidth, h = 160, pad = 12;
+      const vals = points.map(p => p.equity);
+      const min = Math.min(...vals), max = Math.max(...vals);
+      const range = max - min || 1;
+      ctx.strokeStyle = '#6cb6ff'; ctx.lineWidth = 2; ctx.beginPath();
+      points.forEach((p, i) => {
+        const x = pad + (w - 2*pad) * (i / (points.length - 1));
+        const y = h - pad - ((p.equity - min) / range) * (h - 2*pad);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    async function setTarget() {
+      const v = parseFloat(document.getElementById('targetInput').value);
+      const r = await fetch('/api/monthly/target', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({target_return_pct: v})
+      });
+      const j = await r.json();
+      log('月目标已设为 ' + j.target_return_pct + '%');
+    }
     function connect() {
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
       ws = new WebSocket(`${proto}://${location.host}/ws`);
@@ -85,9 +131,11 @@
         if (data.type === 'command_result') { log(data.message); return; }
         if (data.type === 'welcome') { log(data.message); return; }
         if (data.quotes) renderTick(data);
+        if (data.equity_curve) drawCurve(data.equity_curve);
       };
     }
     function renderTick(data) {
+      if (data.equity_curve) drawCurve(data.equity_curve);
       if (data.portfolio) {
         document.getElementById('equity').textContent = data.portfolio.equity.toLocaleString(undefined,{maximumFractionDigits:2});
       }
@@ -97,6 +145,10 @@
         ret.textContent = (m.return_pct >= 0 ? '+' : '') + m.return_pct.toFixed(2) + '%';
         ret.className = 'value ' + (m.return_pct >= 0 ? 'up' : 'down');
         document.getElementById('monthProg').textContent = m.progress_pct.toFixed(0) + '% / 目标' + m.target_return_pct + '%';
+        document.getElementById('targetInput').value = m.target_return_pct;
+      }
+      if (data.equity && !data.portfolio) {
+        document.getElementById('equity').textContent = data.equity.toLocaleString(undefined,{maximumFractionDigits:2});
       }
       const ths = document.getElementById('ths');
       if (data.ths_connected) { ths.textContent = '同花顺: 已连接'; ths.classList.add('on'); }
@@ -121,6 +173,7 @@
     }
     document.getElementById('cmdInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendCmd(); });
     connect();
+    fetch('/api/equity-curve').then(r=>r.json()).then(d=>drawCurve(d.curve));
   </script>
 </body>
 </html>

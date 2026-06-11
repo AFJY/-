@@ -69,6 +69,12 @@ def cmd_serve(args: argparse.Namespace) -> None:
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
+def cmd_target(args: argparse.Namespace) -> None:
+    from stock_ai.config_manager import set_monthly_target
+    pct = set_monthly_target(args.pct, args.config)
+    console.print(f"[green]月目标收益率已设为 {pct}%[/]")
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     import json
     config = load_config(args.config)
@@ -91,6 +97,10 @@ def main() -> None:
     sub.add_parser("run", help="拉取最新行情并执行一轮模拟交易").set_defaults(func=cmd_run)
     sub.add_parser("status", help="查看当前模拟盘持仓").set_defaults(func=cmd_status)
     sub.add_parser("serve", help="启动实时盯盘 Web 仪表盘 + 自动交易").set_defaults(func=cmd_serve)
+
+    tgt = sub.add_parser("target", help="设置月目标收益率 (%)")
+    tgt.add_argument("pct", type=float, help="月目标，例如 8 表示 8%")
+    tgt.set_defaults(func=cmd_target)
 
     bt = sub.add_parser("backtest", help="对单个标的做历史回测")
     bt.add_argument("-s", "--symbol", default="SPY", help="标的代码")
