@@ -128,7 +128,7 @@ def create_app(config_path: str = "config.yaml") -> FastAPI:
         await ws.accept()
         ws_clients.append(ws)
         try:
-            await ws.send_json({"type": "welcome", "message": "Stock AI 实时连接已建立"})
+            await ws.send_json({"type": "welcome", "message": "中文交互已连接，可输入：状态 / 暂停 / 刷新 / 帮助"})
             await ws.send_json(monitor.snapshot())
             while True:
                 raw = await ws.receive_text()

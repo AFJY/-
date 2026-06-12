@@ -69,11 +69,15 @@
         </div>
       </div>
       <div class="card" style="margin-top:16px">
-        <h2>与我交互</h2>
-        <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px">命令：status / pause / resume / tick / train / target 8 / help</p>
+        <h2>中文交互</h2>
+        <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px">输入中文或拼音命令，回车发送</p>
         <div class="cmd-box">
-          <input id="cmdInput" placeholder="例如: status" />
+          <input id="cmdInput" placeholder="例如：状态 / 暂停 / 刷新 / 训练 / 月目标 8" />
           <button onclick="sendCmd()">发送</button>
+        </div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:8px;line-height:1.6">
+          <b>常用：</b>状态 · 暂停 · 继续 · 刷新 · 训练 · 帮助<br>
+          <b>月目标：</b>月目标 8（表示 8%）
         </div>
         <div id="log" style="margin-top:12px"></div>
       </div>
@@ -161,13 +165,30 @@
           <td>${q.source}</td>
         </tr>`).join('');
       const sig = document.getElementById('signals');
+      const actZh = {buy:'买入', sell:'卖出', hold:'观望'};
       sig.innerHTML = (data.signals || []).slice(0,8).map(s =>
-        `<div>${s.symbol} <b>${s.action}</b> ${(s.confidence*100).toFixed(0)}%</div>`).join('');
+        `<div>${s.symbol} <b>${actZh[s.action]||s.action}</b> ${(s.confidence*100).toFixed(0)}%</div>`).join('');
+    }
+    function toCommand(text) {
+      const t = text.trim();
+      const map = {
+        '状态': 'status', '查看': 'status', '权益': 'status',
+        '暂停': 'pause', '停止': 'pause', '停': 'pause',
+        '继续': 'resume', '恢复': 'resume', '开始': 'resume',
+        '刷新': 'tick', '更新': 'tick',
+        '训练': 'train', '学习': 'train',
+        '帮助': 'help', '命令': 'help',
+      };
+      if (map[t]) return map[t];
+      if (t.startsWith('月目标')) return 'target ' + (t.replace(/月目标\s*/, '') || '8');
+      return t;
     }
     function sendCmd() {
       const input = document.getElementById('cmdInput');
-      const cmd = input.value.trim();
-      if (!cmd || !ws || ws.readyState !== 1) return;
+      const raw = input.value.trim();
+      if (!raw || !ws || ws.readyState !== 1) return;
+      const cmd = toCommand(raw);
+      log('发送：' + raw);
       ws.send(JSON.stringify({type:'command', command: cmd}));
       input.value = '';
     }
