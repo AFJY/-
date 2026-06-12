@@ -1,0 +1,52 @@
+【同花顺连接 Stock AI 云端 - Windows 安装说明】
+
+你的电脑需要：Python 3（无需 Git）
+
+========================================
+第一步：安装 Python（若还没有）
+========================================
+1. 浏览器打开 https://www.python.org/downloads/
+2. 下载 Python 3.12 或 3.11
+3. 安装时勾选 ★ Add python.exe to PATH ★
+4. 安装完成后关闭 PowerShell 再重新打开
+
+验证：打开 PowerShell 输入  py --version  应显示版本号
+
+========================================
+第二步：下载 bridge 文件夹
+========================================
+方式 A - 浏览器下载 ZIP（推荐，无需 Git）
+1. 打开 https://github.com/AFJY/-
+2. 切换到分支 cursor/stock-ai-paper-trading-e56c
+3. 点 Code → Download ZIP
+4. 解压到桌面
+5. 进入文件夹  stock-ai\bridge
+
+方式 B - PowerShell 一键下载（复制整段执行）
+见下方「一键命令」
+
+========================================
+第三步：运行桥接
+========================================
+在 bridge 文件夹里：
+  双击  一键连接云端.bat
+或
+  右键 安装并连接.ps1 → 使用 PowerShell 运行
+
+========================================
+成功标志
+========================================
+- 黑窗口显示 Connected
+- 网页仪表盘右上角：同花顺 已连接
+
+========================================
+一键命令（PowerShell 整段复制）
+========================================
+
+cd $HOME\Desktop
+Invoke-WebRequest -Uri "https://github.com/AFJY/-/archive/refs/heads/cursor/stock-ai-paper-trading-e56c.zip" -OutFile sa.zip
+Expand-Archive sa.zip -DestinationPath . -Force
+$dir = Get-ChildItem -Directory | Where-Object { $_.Name -like '*stock-ai*' } | Select-Object -First 1
+cd "$($dir.FullName)\stock-ai\bridge"
+py -m pip install --user websockets akshare
+py ths_agent.py --server wss://rare-cats-bake.loca.lt/ws/ths --sync-watchlist --ui

@@ -1,0 +1,48 @@
+market:
+  indices:
+  - symbol: 000001.SS
+    name: 上证指数
+  - symbol: 399001.SZ
+    name: 深证成指
+  - symbol: SPY
+    name: S&P 500 ETF
+  watchlist:
+  - 600519.SS
+  - 000001.SZ
+  - 300750.SZ
+trading:
+  initial_capital: 1000000.0
+  max_position_pct: 0.25
+  commission_rate: 0.0003
+  slippage_rate: 0.0005
+  min_confidence: 0.55
+monthly:
+  target_return_pct: 8.0
+  state_file: data/monthly_state.json
+  retrain_on_new_month: true
+risk:
+  stop_loss_pct: 0.08
+  take_profit_pct: 0.15
+  trailing_stop_pct: 0.05
+learning:
+  lookback_days: 365
+  retrain_interval_days: 7
+news:
+  enabled: true
+  llm_enabled: true
+  llm_model: deepseek-chat
+  rss_feeds:
+  - https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC&region=US&lang=en-US
+  sentiment_weight: 0.15
+realtime:
+  poll_interval_sec: 30
+  auto_trade: true
+  prefer_ths_bridge: true
+runtime:
+  data_dir: data
+  model_dir: models
+  log_dir: logs
+  state_file: data/portfolio_state.json
+  equity_log: data/equity_curve.json
+  web_host: 0.0.0.0
+  web_port: 8765
