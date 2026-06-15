@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A股新股民模拟交易盘</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <span class="logo">A</span>
+          <div>
+            <strong>A股模拟盘</strong>
+            <small>新股民训练模式</small>
+          </div>
+        </div>
+
+        <nav>
+          <button class="active" data-nav-target="#overview">账户概览</button>
+          <button data-nav-target="#trade">交易下单</button>
+          <button data-nav-target="#watchlist">A股自选</button>
+          <button data-nav-target="#journal">交易复盘</button>
+        </nav>
+
+        <section class="learning-card">
+          <span>今日练习</span>
+          <strong>先写理由，再点买入</strong>
+          <p>模拟资金不是真钱，但每次下单都按真实纪律记录。</p>
+        </section>
+      </aside>
+
+      <main class="content">
+        <section class="hero" id="overview">
+          <div>
+            <p class="eyebrow">Paper trading · China A-shares</p>
+            <h1>用虚拟资金练真实交易习惯</h1>
+            <p>
+              第一版聚焦 A 股模拟行情、买卖撮合、持仓盈亏和交易复盘；后续可替换行情适配器并扩展美股、港股或加密资产。
+            </p>
+          </div>
+          <div class="market-chip">
+            <strong data-ref="marketStatus">模拟盘运行中</strong>
+            <span data-ref="marketHint">教学行情刷新中</span>
+            <time data-ref="marketTime">--:--:--</time>
+          </div>
+        </section>
+
+        <section class="stats-grid" aria-label="账户统计">
+          <article>
+            <span>总资产</span>
+            <strong data-ref="totalAssets">--</strong>
+          </article>
+          <article>
+            <span>可用现金</span>
+            <strong data-ref="cash">--</strong>
+          </article>
+          <article>
+            <span>持仓市值</span>
+            <strong data-ref="marketValue">--</strong>
+          </article>
+          <article>
+            <span>总收益</span>
+            <strong data-ref="totalReturn">--</strong>
+          </article>
+        </section>
+
+        <section class="panel grid-two" id="trade">
+          <div>
+            <div class="section-title">
+              <p class="eyebrow">Trade ticket</p>
+              <h2>交易下单</h2>
+            </div>
+            <form class="order-form" data-ref="orderForm">
+              <label>
+                股票
+                <select name="symbol" data-ref="symbol"></select>
+              </label>
+              <div class="field-row">
+                <label>
+                  方向
+                  <select name="side">
+                    <option value="buy">买入</option>
+                    <option value="sell">卖出</option>
+                  </select>
+                </label>
+                <label>
+                  类型
+                  <select name="type">
+                    <option value="market">市价单</option>
+                    <option value="limit">限价单</option>
+                  </select>
+                </label>
+              </div>
+              <div class="field-row">
+                <label>
+                  数量
+                  <input name="quantity" type="number" min="1" step="1" value="100" />
+                </label>
+                <label>
+                  限价
+                  <input name="limitPrice" type="number" min="0" step="0.01" placeholder="市价单可不填" />
+                </label>
+              </div>
+              <label>
+                交易理由
+                <textarea
+                  name="reason"
+                  data-ref="reason"
+                  rows="4"
+                  placeholder="例如：回踩均线后放量，计划亏损 2% 止损"
+                ></textarea>
+              </label>
+              <div class="estimate" data-ref="estimate"></div>
+              <button class="primary" type="submit">提交模拟订单</button>
+            </form>
+          </div>
+
+          <div>
+            <div class="section-title">
+              <p class="eyebrow">Orders</p>
+              <h2>最近订单</h2>
+            </div>
+            <ul class="orders" data-ref="orders"></ul>
+            <button class="ghost" type="button" data-ref="resetButton">重置模拟账户</button>
+          </div>
+        </section>
+
+        <section class="panel" id="watchlist">
+          <div class="section-title">
+            <p class="eyebrow">Watchlist</p>
+            <h2>A股自选行情</h2>
+          </div>
+          <div class="watchlist" data-ref="watchlist"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <p class="eyebrow">Portfolio</p>
+            <h2>持仓与浮动盈亏</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>股票</th>
+                  <th>数量</th>
+                  <th>成本</th>
+                  <th>现价</th>
+                  <th>市值</th>
+                  <th>盈亏</th>
+                </tr>
+              </thead>
+              <tbody data-ref="holdings"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="journal">
+          <div class="section-title">
+            <p class="eyebrow">Review</p>
+            <h2>交易日志</h2>
+          </div>
+          <div class="journal" data-ref="journal"></div>
+        </section>
+      </main>
+
+      <aside class="coach" aria-label="交易讨论区">
+        <header>
+          <p class="eyebrow">Coach</p>
+          <h2>和我讨论交易</h2>
+          <span>对象：新股民 · 目标：养成纪律</span>
+        </header>
+        <div class="coach-messages" data-ref="coachMessages"></div>
+        <form class="coach-form" data-ref="coachForm">
+          <textarea
+            name="coachInput"
+            data-ref="coachInput"
+            rows="3"
+            placeholder="问我：这只股票能追吗？亏了要不要补仓？"
+          ></textarea>
+          <button class="primary" type="submit">发送给交易教练</button>
+        </form>
+      </aside>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
