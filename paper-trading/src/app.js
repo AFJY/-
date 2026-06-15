@@ -40,11 +40,17 @@ function bindEvents() {
   });
 
   elements.orderForm.addEventListener("input", renderEstimate);
+  elements.symbol.addEventListener("change", () => {
+    state.selectedSymbol = elements.symbol.value;
+    persist();
+    renderMarketOnly();
+  });
   elements.orderForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const form = new FormData(elements.orderForm);
+    const symbol = form.get("symbol");
     const next = placeOrder(state, {
-      symbol: form.get("symbol"),
+      symbol,
       side: form.get("side"),
       type: form.get("type"),
       limitPrice: form.get("limitPrice"),
@@ -52,7 +58,7 @@ function bindEvents() {
       reason: form.get("reason"),
     });
 
-    Object.assign(state, next);
+    Object.assign(state, next, { selectedSymbol: symbol });
     persist();
     elements.reason.value = "";
     render();
@@ -233,7 +239,7 @@ function renderCoach() {
   elements.coachMessages.innerHTML = state.coachMessages
     .map(
       (message) => `
-        <div class="message ${message.role}">
+        <div class="message ${message.role === "coach" ? "coach-message" : "user-message"}">
           <small>${message.role === "coach" ? "交易教练" : "我"} · ${message.time}</small>
           <p>${message.text}</p>
         </div>
@@ -244,11 +250,19 @@ function renderCoach() {
 }
 
 function loadState() {
+  const fresh = createInitialState();
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : createInitialState();
+    if (!saved) {
+      return fresh;
+    }
+
+    return {
+      ...fresh,
+      ...JSON.parse(saved),
+    };
   } catch {
-    return createInitialState();
+    return fresh;
   }
 }
 
