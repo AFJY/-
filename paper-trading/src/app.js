@@ -10,6 +10,12 @@ import {
 } from "./trading-core.js";
 
 const STORAGE_KEY = "ashare-paper-trading-state-v1";
+
+if (new URLSearchParams(window.location.search).has("reset")) {
+  window.localStorage.removeItem(STORAGE_KEY);
+  window.history.replaceState(null, "", window.location.pathname);
+}
+
 const state = loadState();
 const elements = {};
 
