@@ -3,10 +3,14 @@ import {
   addCoachMessage,
   applyMarketTick,
   createInitialState,
+  getIntradaySeries,
   getHoldingsRows,
   getOrderEstimate,
   getPortfolioSummary,
+  getQuoteLinks,
+  getSelectedQuote,
   placeOrder,
+  searchStocks,
 } from "./trading-core.js";
 
 const STORAGE_KEY = "ashare-paper-trading-state-v1";
@@ -46,6 +50,11 @@ function bindEvents() {
   });
 
   elements.orderForm.addEventListener("input", renderEstimate);
+  elements.stockSearch.addEventListener("input", () => {
+    state.searchQuery = elements.stockSearch.value;
+    persist();
+    renderMarketOnly();
+  });
   elements.orderType.addEventListener("change", () => {
     updateOrderTypeState(true);
     renderEstimate();
@@ -110,6 +119,7 @@ function render() {
 function renderMarketOnly() {
   renderSummary();
   renderWatchlist();
+  renderStockDetail();
   renderMarketStatus();
 }
 
@@ -136,7 +146,12 @@ function renderMarketStatus() {
 }
 
 function renderWatchlist() {
-  elements.watchlist.innerHTML = state.watchlist
+  const results = searchStocks(state.watchlist, state.searchQuery);
+  elements.stockSearch.value = state.searchQuery || "";
+  elements.searchCount.textContent = `找到 ${results.length} 只`;
+
+  elements.watchlist.innerHTML = results.length
+    ? results
     .map(
       (quote) => `
         <button class="quote-card ${quote.symbol === state.selectedSymbol ? "selected" : ""}" data-symbol="${quote.symbol}">
@@ -151,7 +166,8 @@ function renderWatchlist() {
         </button>
       `
     )
-    .join("");
+    .join("")
+    : `<p class="empty">没有匹配的股票。试试输入股票代码、名称或行业。</p>`;
 
   for (const card of elements.watchlist.querySelectorAll("[data-symbol]")) {
     card.addEventListener("click", () => {
@@ -163,6 +179,29 @@ function renderWatchlist() {
   }
 }
 
+function renderStockDetail() {
+  const quote = getSelectedQuote(state);
+  const links = getQuoteLinks(quote.symbol);
+  const series = getIntradaySeries(quote, state.tick);
+
+  elements.detailName.textContent = quote.name;
+  elements.detailSymbol.textContent = quote.symbol;
+  elements.detailSector.textContent = quote.sector;
+  elements.detailPrice.textContent = quote.price.toFixed(2);
+  elements.detailPreviousClose.textContent = quote.previousClose.toFixed(2);
+  elements.detailRange.textContent = `${quote.dayLow.toFixed(2)} / ${quote.dayHigh.toFixed(2)}`;
+  elements.detailChange.textContent = `${quote.change >= 0 ? "+" : ""}${quote.change.toFixed(2)} (${formatPct(
+    quote.changePct
+  )})`;
+  setTone(elements.detailChange, quote.change);
+  setTone(elements.detailPrice, quote.change);
+  elements.quoteLinks.innerHTML = `
+    <a href="${links.eastmoney}" target="_blank" rel="noreferrer">东方财富看盘</a>
+    <a href="${links.sina}" target="_blank" rel="noreferrer">新浪分时</a>
+  `;
+  elements.intradayChart.innerHTML = buildIntradaySvg(series, quote.previousClose);
+}
+
 function renderOrderSymbols() {
   const selected = state.selectedSymbol;
   elements.symbol.innerHTML = state.watchlist
@@ -171,6 +210,39 @@ function renderOrderSymbols() {
         `<option value="${quote.symbol}" ${quote.symbol === selected ? "selected" : ""}>${quote.name} ${quote.symbol}</option>`
     )
     .join("");
+}
+
+function buildIntradaySvg(series, previousClose) {
+  const width = 640;
+  const height = 220;
+  const padding = 18;
+  const prices = series.map((point) => point.price);
+  const min = Math.min(...prices, previousClose);
+  const max = Math.max(...prices, previousClose);
+  const range = max - min || 1;
+  const points = series
+    .map((point, index) => {
+      const x = padding + (index / (series.length - 1)) * (width - padding * 2);
+      const y = height - padding - ((point.price - min) / range) * (height - padding * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const previousCloseY =
+    height - padding - ((previousClose - min) / range) * (height - padding * 2);
+  const first = series[0];
+  const last = series.at(-1);
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="分时走势图">
+      <line class="chart-grid" x1="${padding}" y1="${previousCloseY.toFixed(1)}" x2="${width - padding}" y2="${previousCloseY.toFixed(1)}"></line>
+      <polyline class="chart-line" points="${points}"></polyline>
+      <circle class="chart-dot" cx="${points.split(" ").at(-1).split(",")[0]}" cy="${points.split(" ").at(-1).split(",")[1]}" r="4"></circle>
+      <text x="${padding}" y="${height - 4}">${first.time}</text>
+      <text x="${width / 2 - 14}" y="${height - 4}">11:30/13:00</text>
+      <text x="${width - 54}" y="${height - 4}">${last.time}</text>
+      <text x="${padding}" y="15">昨收 ${previousClose.toFixed(2)}</text>
+    </svg>
+  `;
 }
 
 function renderEstimate() {
@@ -280,10 +352,7 @@ function loadState() {
       return fresh;
     }
 
-    return {
-      ...fresh,
-      ...JSON.parse(saved),
-    };
+    return normalizeSavedState(JSON.parse(saved), fresh);
   } catch {
     return fresh;
   }
@@ -291,6 +360,28 @@ function loadState() {
 
 function persist() {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function normalizeSavedState(saved, fresh) {
+  const savedQuotes = new Map(
+    (saved.watchlist || []).map((quote) => [quote.symbol, quote])
+  );
+  const watchlist = fresh.watchlist.map((quote) => ({
+    ...quote,
+    ...savedQuotes.get(quote.symbol),
+  }));
+  const selectedSymbol = watchlist.some(
+    (quote) => quote.symbol === saved.selectedSymbol
+  )
+    ? saved.selectedSymbol
+    : fresh.selectedSymbol;
+
+  return {
+    ...fresh,
+    ...saved,
+    selectedSymbol,
+    watchlist,
+  };
 }
 
 function formatPct(value) {

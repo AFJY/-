@@ -33,6 +33,10 @@ body {
   color: var(--text);
 }
 
+a {
+  color: inherit;
+}
+
 button,
 input,
 select,
@@ -232,6 +236,150 @@ nav button:hover,
 
 .section-title {
   margin-bottom: 18px;
+}
+
+.market-board {
+  display: grid;
+  gap: 18px;
+}
+
+.market-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.market-search span {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+}
+
+.stock-focus {
+  display: grid;
+  grid-template-columns: 0.82fr 1.18fr;
+  gap: 16px;
+}
+
+.stock-detail,
+.intraday-card {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stock-detail {
+  padding: 18px;
+}
+
+.stock-detail h3,
+.intraday-card h3 {
+  margin: 6px 0;
+}
+
+.stock-detail > strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 36px;
+}
+
+.stock-detail > span {
+  display: block;
+  margin-top: 4px;
+  font-weight: 800;
+}
+
+.stock-detail dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.stock-detail dl div {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(8, 17, 31, 0.54);
+}
+
+.stock-detail dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stock-detail dd {
+  margin: 5px 0 0;
+  font-weight: 800;
+}
+
+.quote-links {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.quote-links a {
+  padding: 11px 12px;
+  border: 1px solid rgba(96, 165, 250, 0.36);
+  border-radius: 14px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--brand-strong);
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+.quote-links a:hover {
+  border-color: var(--brand-strong);
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.intraday-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.intraday-chart {
+  min-height: 220px;
+  border-radius: 18px;
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    rgba(8, 17, 31, 0.54);
+  background-size: 100% 44px, 64px 100%;
+}
+
+.intraday-chart svg {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--brand-strong);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.chart-grid {
+  stroke: rgba(251, 191, 36, 0.56);
+  stroke-dasharray: 5 7;
+}
+
+.chart-dot {
+  fill: var(--warning);
+}
+
+.intraday-chart text,
+.chart-note {
+  fill: var(--muted);
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .order-form,
@@ -504,7 +652,12 @@ td small {
   }
 
   .watchlist,
+  .stock-focus,
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stock-focus {
+    grid-template-columns: 1fr;
   }
 }

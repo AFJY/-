@@ -45,6 +45,46 @@ export const DEFAULT_WATCHLIST = [
     previousClose: 47.95,
     volume: 97600,
   },
+  {
+    symbol: "601318.SH",
+    name: "中国平安",
+    sector: "保险",
+    price: 46.26,
+    previousClose: 45.82,
+    volume: 132400,
+  },
+  {
+    symbol: "000858.SZ",
+    name: "五粮液",
+    sector: "消费",
+    price: 128.66,
+    previousClose: 130.1,
+    volume: 73400,
+  },
+  {
+    symbol: "000001.SZ",
+    name: "平安银行",
+    sector: "金融",
+    price: 10.48,
+    previousClose: 10.39,
+    volume: 224500,
+  },
+  {
+    symbol: "600900.SH",
+    name: "长江电力",
+    sector: "公用事业",
+    price: 29.31,
+    previousClose: 29.16,
+    volume: 168900,
+  },
+  {
+    symbol: "300059.SZ",
+    name: "东方财富",
+    sector: "金融科技",
+    price: 14.52,
+    previousClose: 14.19,
+    volume: 336800,
+  },
 ];
 
 const MARKET_OPEN_MINUTE = 9 * 60 + 30;
@@ -65,6 +105,7 @@ export function createInitialState(now = new Date()) {
       },
     ],
     selectedSymbol: DEFAULT_WATCHLIST[0].symbol,
+    searchQuery: "",
     watchlist: DEFAULT_WATCHLIST.map((quote, index) =>
       enrichQuote({ ...quote }, index, 0)
     ),
@@ -215,6 +256,57 @@ export function getOrderEstimate(state, draft) {
     fees,
     total: side === "buy" ? gross + fees : gross - fees,
   };
+}
+
+export function getSelectedQuote(state) {
+  return findQuote(state, state.selectedSymbol) || state.watchlist[0];
+}
+
+export function searchStocks(quotes, query) {
+  const normalized = String(query || "").trim().toLowerCase();
+  if (!normalized) {
+    return quotes;
+  }
+
+  return quotes.filter((quote) => {
+    const code = quote.symbol.toLowerCase();
+    const compactCode = code.replace(".", "");
+    return (
+      quote.name.toLowerCase().includes(normalized) ||
+      quote.sector.toLowerCase().includes(normalized) ||
+      code.includes(normalized) ||
+      compactCode.includes(normalized)
+    );
+  });
+}
+
+export function getQuoteLinks(symbol) {
+  const code = toProviderCode(symbol);
+  return {
+    eastmoney: `https://quote.eastmoney.com/${code}.html`,
+    sina: `https://finance.sina.com.cn/realstock/company/${code}/nc.shtml`,
+  };
+}
+
+export function getIntradaySeries(quote, tick = 0, points = 64) {
+  const safePoints = Math.max(8, points);
+  const open = quote.previousClose;
+  const amplitude = Math.max(open * 0.018, 0.08);
+
+  return Array.from({ length: safePoints }, (_, index) => {
+    const progress = index / (safePoints - 1);
+    const wave =
+      Math.sin((index + tick) * 0.37) * amplitude +
+      Math.cos((index + tick) * 0.13) * amplitude * 0.45;
+    const trend = (quote.price - open) * progress;
+    const price = roundMoney(open + trend + wave * (0.35 + progress * 0.65));
+
+    return {
+      time: formatIntradayTime(progress),
+      price,
+      volume: Math.round(quote.volume * (0.4 + Math.abs(wave / amplitude)) / safePoints),
+    };
+  });
 }
 
 export function addCoachMessage(state, text, now = new Date()) {
@@ -455,6 +547,25 @@ function isExecutable(side, type, limitPrice, marketPrice) {
   }
 
   return side === "buy" ? limitPrice >= marketPrice : limitPrice <= marketPrice;
+}
+
+function toProviderCode(symbol) {
+  const [code, market] = symbol.split(".");
+  return `${market === "SH" ? "sh" : "sz"}${code}`;
+}
+
+function formatIntradayTime(progress) {
+  const tradingMinutes = 240;
+  let minuteOffset = Math.round(progress * tradingMinutes);
+  let minutes = 9 * 60 + 30 + minuteOffset;
+
+  if (minuteOffset > 120) {
+    minutes = 13 * 60 + (minuteOffset - 120);
+  }
+
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
 function enrichQuote(quote, index, tick) {

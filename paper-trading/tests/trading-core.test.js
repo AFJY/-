@@ -5,10 +5,13 @@ import {
   addCoachMessage,
   applyMarketTick,
   createInitialState,
+  getIntradaySeries,
   getHoldingsRows,
   getOrderEstimate,
   getPortfolioSummary,
+  getQuoteLinks,
   placeOrder,
+  searchStocks,
 } from "../src/trading-core.js";
 
 test("buy orders update cash, holdings, and journal", () => {
@@ -114,4 +117,33 @@ test("summary reflects initial virtual account", () => {
   assert.equal(summary.cash, 100000);
   assert.equal(summary.totalAssets, 100000);
   assert.equal(summary.totalReturn, 0);
+});
+
+test("stock search matches name, code, and sector", () => {
+  const state = createInitialState();
+
+  assert.equal(searchStocks(state.watchlist, "招商")[0].symbol, "600036.SH");
+  assert.equal(searchStocks(state.watchlist, "600036")[0].name, "招商银行");
+  assert.ok(searchStocks(state.watchlist, "金融").length >= 2);
+});
+
+test("quote links point to external A-share quote pages", () => {
+  const links = getQuoteLinks("600036.SH");
+
+  assert.equal(links.eastmoney, "https://quote.eastmoney.com/sh600036.html");
+  assert.equal(
+    links.sina,
+    "https://finance.sina.com.cn/realstock/company/sh600036/nc.shtml"
+  );
+});
+
+test("intraday series provides time ordered price points", () => {
+  const state = createInitialState();
+  const quote = state.watchlist.find((item) => item.symbol === "600036.SH");
+  const series = getIntradaySeries(quote, 0, 16);
+
+  assert.equal(series.length, 16);
+  assert.equal(series[0].time, "09:30");
+  assert.equal(series.at(-1).time, "15:00");
+  assert.ok(series.every((point) => point.price > 0));
 });

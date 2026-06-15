@@ -20,7 +20,7 @@
         <nav>
           <button class="active" data-nav-target="#overview">账户概览</button>
           <button data-nav-target="#trade">交易下单</button>
-          <button data-nav-target="#watchlist">A股自选</button>
+          <button data-nav-target="#market">看盘搜索</button>
           <button data-nav-target="#journal">交易复盘</button>
         </nav>
 
@@ -137,11 +137,60 @@
           </div>
         </section>
 
-        <section class="panel" id="watchlist">
+        <section class="panel market-board" id="market">
           <div class="section-title">
-            <p class="eyebrow">Watchlist</p>
-            <h2>A股自选行情</h2>
+            <p class="eyebrow">Market board</p>
+            <h2>看盘搜索与分时</h2>
           </div>
+          <div class="market-search">
+            <label>
+              搜索个股
+              <input
+                type="search"
+                data-ref="stockSearch"
+                placeholder="输入股票名称、代码或行业，例如 招商银行 / 600036 / 金融"
+              />
+            </label>
+            <span data-ref="searchCount">--</span>
+          </div>
+
+          <div class="stock-focus">
+            <article class="stock-detail">
+              <p class="eyebrow">Selected stock</p>
+              <h3 data-ref="detailName">--</h3>
+              <strong data-ref="detailPrice">--</strong>
+              <span data-ref="detailChange">--</span>
+              <dl>
+                <div>
+                  <dt>代码</dt>
+                  <dd data-ref="detailSymbol">--</dd>
+                </div>
+                <div>
+                  <dt>行业</dt>
+                  <dd data-ref="detailSector">--</dd>
+                </div>
+                <div>
+                  <dt>昨收</dt>
+                  <dd data-ref="detailPreviousClose">--</dd>
+                </div>
+                <div>
+                  <dt>区间</dt>
+                  <dd data-ref="detailRange">--</dd>
+                </div>
+              </dl>
+              <div class="quote-links" data-ref="quoteLinks"></div>
+            </article>
+
+            <article class="intraday-card">
+              <div>
+                <p class="eyebrow">Intraday</p>
+                <h3>模拟分时走势</h3>
+              </div>
+              <div class="intraday-chart" data-ref="intradayChart"></div>
+              <p class="chart-note">当前为教学模拟分时；点击外部链接可查看真实行情页面。</p>
+            </article>
+          </div>
+
           <div class="watchlist" data-ref="watchlist"></div>
         </section>
 
