@@ -81,6 +81,8 @@ test("limit orders can wait for simulated matching", () => {
   });
 
   assert.equal(next.orders[0].status, "PENDING");
+  assert.equal(getHoldingsRows(next).length, 0);
+  assert.equal(next.journal.length, 0);
   assert.equal(applyMarketTick(next).watchlist.length, state.watchlist.length);
 });
 

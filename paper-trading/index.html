@@ -91,7 +91,7 @@
                 </label>
                 <label>
                   类型
-                  <select name="type">
+                  <select name="type" data-ref="orderType">
                     <option value="market">市价单</option>
                     <option value="limit">限价单</option>
                   </select>
@@ -104,7 +104,14 @@
                 </label>
                 <label>
                   限价
-                  <input name="limitPrice" type="number" min="0" step="0.01" placeholder="市价单可不填" />
+                  <input
+                    name="limitPrice"
+                    data-ref="limitPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="市价单不可填"
+                  />
                 </label>
               </div>
               <label>

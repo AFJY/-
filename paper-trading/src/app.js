@@ -46,6 +46,10 @@ function bindEvents() {
   });
 
   elements.orderForm.addEventListener("input", renderEstimate);
+  elements.orderType.addEventListener("change", () => {
+    updateOrderTypeState(true);
+    renderEstimate();
+  });
   elements.symbol.addEventListener("change", () => {
     state.selectedSymbol = elements.symbol.value;
     persist();
@@ -99,6 +103,7 @@ function render() {
   renderOrders();
   renderJournal();
   renderCoach();
+  updateOrderTypeState(false);
   renderEstimate();
 }
 
@@ -184,6 +189,18 @@ function renderEstimate() {
     <span>费用：${CNY.format(estimate.fees)}</span>
     <strong>预计${form.get("side") === "sell" ? "到账" : "占用"}：${CNY.format(estimate.total)}</strong>
   `;
+}
+
+function updateOrderTypeState(shouldClearLimit) {
+  const isMarketOrder = elements.orderType.value === "market";
+  elements.limitPrice.disabled = isMarketOrder;
+  elements.limitPrice.placeholder = isMarketOrder
+    ? "市价单不可填"
+    : "填写触发价格";
+
+  if (isMarketOrder && shouldClearLimit) {
+    elements.limitPrice.value = "";
+  }
 }
 
 function renderHoldings() {
