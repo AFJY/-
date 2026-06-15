@@ -50,11 +50,15 @@ function bindEvents() {
   });
 
   elements.orderForm.addEventListener("input", renderEstimate);
-  elements.stockSearch.addEventListener("input", () => {
-    state.searchQuery = elements.stockSearch.value;
-    persist();
-    renderMarketOnly();
+  elements.stockSearch.addEventListener("input", updateSearchQuery);
+  elements.stockSearch.addEventListener("change", updateSearchQuery);
+  elements.stockSearch.addEventListener("search", updateSearchQuery);
+  elements.stockSearch.addEventListener("keyup", (event) => {
+    if (event.key === "Enter") {
+      updateSearchQuery();
+    }
   });
+  elements.searchButton.addEventListener("click", updateSearchQuery);
   elements.orderType.addEventListener("change", () => {
     updateOrderTypeState(true);
     renderEstimate();
@@ -103,6 +107,12 @@ function bindEvents() {
       button.classList.add("active");
     });
   }
+}
+
+function updateSearchQuery() {
+  state.searchQuery = elements.stockSearch.value;
+  persist();
+  renderMarketOnly();
 }
 
 function render() {

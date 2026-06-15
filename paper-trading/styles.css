@@ -245,9 +245,24 @@ nav button:hover,
 
 .market-search {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 14px;
   align-items: end;
+}
+
+.search-button {
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid rgba(96, 165, 250, 0.36);
+  border-radius: 14px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.search-button:hover {
+  border-color: var(--brand-strong);
+  background: rgba(59, 130, 246, 0.2);
 }
 
 .market-search span {
