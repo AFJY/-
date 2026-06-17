@@ -12,6 +12,18 @@
 
 详细说明：[scripts/oneclick/README.md](scripts/oneclick/README.md)
 
+## 小游戏
+
+新增一个可直接在浏览器运行的小游戏：[星星收集者](games/star-catcher/index.html)。
+
+本地试玩：
+
+```bash
+python3 -m http.server 8000
+```
+
+然后打开 `http://localhost:8000/games/star-catcher/`。
+
 ## 本机一键部署（在你自己的电脑上）
 
 > **说明：** Cursor Cloud 远程环境里的桌面图标不会出现在你家电脑桌面上，必须在本机/WSL 执行下列命令。
